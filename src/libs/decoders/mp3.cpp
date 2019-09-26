@@ -162,18 +162,20 @@ static Sint32 MP3_open(Sound_Sample* const sample, const char* const ext)
                 sample->actual.format = AUDIO_S16SYS;  /* dr_mp3 only does float. */
                 const Uint64 num_frames = populate_seek_points(internal->rw, p_mp3, MP3_FAST_SEEK_FILENAME); // status will be 0 or pcm_frame_count
                 if (num_frames != 0) {
-                    internal->decoder_private = p_mp3;
                     const unsigned int rate = p_mp3->p_dr->sampleRate;
                     internal->total_time = (num_frames / rate) * 1000;
                     internal->total_time += (num_frames % rate) * 1000 / rate;
                     result = 1;
                 } else {
                     internal->total_time = -1;
-                    LOG_MSG("MP3: populate_seek_table failed to create seek points for the stream");
+                    LOG_MSG("MP3: populate_seek_table failed to create seek points for the stream; falling back to brute-force seeking.");
                 }
             } else { LOG_MSG("MP3: drmp3_init(...) failed to parse and initialize the mp3 stream"); }
         } else { LOG_MSG("MP3: failed to allocate memory for the drmp3 object"); }
     } else { LOG_MSG("MP3: failed to allocate memory for the mp3_t object"); }
+
+    // Assign our internal decoder to the mp3 object we've just populated
+    internal->decoder_private = p_mp3;
 
     // if anything went wrong then tear down our private structure
     if (result == 0)
