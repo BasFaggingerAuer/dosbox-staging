@@ -325,6 +325,7 @@ static Sint32 opus_open(Sound_Sample* sample, const char* ext)
 	decoder->consumed = 0;
 	decoder->frame_size = 0;
 	decoder->eof = SDL_FALSE;
+	decoder->buffer = NULL;
 
 	// Connect our long-lived internal decoder to the one we're building here
 	internal->decoder_private = decoder;
