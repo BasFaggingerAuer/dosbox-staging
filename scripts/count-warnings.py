@@ -22,7 +22,7 @@ import sys
 # then script will return with status 1. Simply change this line if you
 # want to set a different limit.
 #
-MAX_WARNINGS = 357
+MAX_WARNINGS = 360
 
 # For recognizing warnings in GCC format in stderr:
 #

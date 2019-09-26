@@ -15,9 +15,12 @@ jobs:
         run: sudo pip3 install scan-build
       - name: Build
         run: |
+          # system information
+          lsb_release -dc
+          uname -a
+          g++ --version
           # build steps
           set -x
-          g++ --version
           ./autogen.sh
           ./configure
           intercept-build make -j "$(nproc)"
