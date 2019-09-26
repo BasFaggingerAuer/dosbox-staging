@@ -326,9 +326,8 @@ static Sint32 opus_open(Sound_Sample* sample, const char* ext)
 	decoder->frame_size = 0;
 	decoder->eof = SDL_FALSE;
 
-	decoder->buffer_size = oh->channel_count * OPUS_MIN_BUFFER_SAMPLES_PER_CHANNEL * 1.5;
-
-	decoder->buffer = SDL_malloc(decoder->buffer_size * sizeof(opus_int16));
+	// Connect our long-lived internal decoder to the one we're building here
+	internal->decoder_private = decoder;
 
 	if (   sample->desired.rate != 0
 	    && sample->desired.rate != OPUS_SAMPLE_RATE
@@ -345,9 +344,9 @@ static Sint32 opus_open(Sound_Sample* sample, const char* ext)
 		decoder->resampler = speex_resampler_init(oh->channel_count,
 		                                          OPUS_SAMPLE_RATE,
 		                                          sample->desired.rate,
-		                                          // SPEEX_RESAMPLER_QUALITY_VOIP,    // ~ 20 Mhz CPU
-		                                          SPEEX_RESAMPLER_QUALITY_DEFAULT, // ~ 40 Mhz CPU
-		                                          // SPEEX_RESAMPLER_QUALITY_DESKTOP, // ~ 80 Mhz CPU
+		                                          // SPEEX_RESAMPLER_QUALITY_VOIP,    // consumes ~20 Mhz
+		                                          SPEEX_RESAMPLER_QUALITY_DEFAULT,    // consumes ~40 Mhz
+		                                          // SPEEX_RESAMPLER_QUALITY_DESKTOP, // consumes ~80 Mhz
 		                                          &rcode);
 
 		// If we failed to initialize the resampler, then tear down
@@ -363,9 +362,11 @@ static Sint32 opus_open(Sound_Sample* sample, const char* ext)
 		decoder->resampler = NULL;
 	}
 
-	// Finally set the private decoder
-	internal->decoder_private = decoder;
+	// Allocate our buffer to hold PCM samples from the Opus decoder
+	decoder->buffer_size = oh->channel_count * OPUS_MIN_BUFFER_SAMPLES_PER_CHANNEL * 1.5;
+	decoder->buffer = SDL_malloc(decoder->buffer_size * sizeof(opus_int16));
 
+	// Gather static properties about our stream (channels, seek-ability, format, and duration)
 	sample->actual.channels = (Uint8)(oh->channel_count);
 	sample->flags = op_seekable(of) ? SOUND_SAMPLEFLAG_CANSEEK: 0;
 	sample->actual.format = sample->desired.format ? sample->desired.format : AUDIO_S16SYS;
@@ -391,7 +392,6 @@ static void opus_close(Sound_Sample* sample)
 	Sound_SampleInternal* internal = (Sound_SampleInternal*) sample->opaque;
 
 	opus_t* d = internal->decoder_private;
-	return;
 	if (d != NULL) {
 
 		if (d->of != NULL) {
@@ -412,6 +412,8 @@ static void opus_close(Sound_Sample* sample)
 		SDL_free(d);
 		d = NULL;
 	}
+	return;
+
 } /* opus_close */
 
 
@@ -465,11 +467,11 @@ static Uint32 opus_read(Sound_Sample* sample)
 
 			// If we need to resample
 			if (d->resampler)
-				rcode = speex_resampler_process_int(d->resampler, 0,
-				                                    d->buffer + d->consumed,
-				                                    &actual_consumed_size,
-				                                    output_buffer,
-				                                    &actual_output_size);
+				(void) speex_resampler_process_int(d->resampler, 0,
+				                                   d->buffer + d->consumed,
+				                                   &actual_consumed_size,
+				                                   output_buffer,
+				                                   &actual_output_size);
 
 			// Otherwise copy the bytes
 			else {
@@ -497,7 +499,6 @@ static Uint32 opus_read(Sound_Sample* sample)
 
 			rcode = actual_output_size * sizeof(opus_int16); // covert from samples to bytes
 			have_consumed = SDL_TRUE;
-			break;
 		}
 
 		else {
