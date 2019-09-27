@@ -6728,7 +6728,8 @@ static drflac_bool32 drflac__on_seek_ogg(void* pUserData, int offset, drflac_see
         drflac_assert(bytesRemainingToSeek >= 0);
 
         if (oggbs->bytesRemainingInPage >= (size_t)bytesRemainingToSeek) {
-            (void) bytesSeeked += bytesRemainingToSeek; // bytesSeeked is unused but kept for future debugging
+            bytesSeeked += bytesRemainingToSeek;
+            (void)bytesSeeked; /* bytesSeeked is not normally used, but retained if needed for maintenance/debugging */
             oggbs->bytesRemainingInPage -= bytesRemainingToSeek;
             break;
         }
