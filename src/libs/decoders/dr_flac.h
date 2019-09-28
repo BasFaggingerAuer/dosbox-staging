@@ -1272,7 +1272,9 @@ typedef drflac_int32 drflac_result;
     #define DRFLAC_NO_THREAD_SANITIZE
 #endif
 
+#if defined(DRFLAC_HAS_LZCNT_INTRINSIC)
 static drflac_bool32 drflac__gIsLZCNTSupported = DRFLAC_FALSE;
+#endif
 
 #ifndef DRFLAC_NO_CPUID
 static drflac_bool32 drflac__gIsSSE2Supported  = DRFLAC_FALSE;
@@ -1292,8 +1294,10 @@ DRFLAC_NO_THREAD_SANITIZE static void drflac__init_cpu_caps()
         int info[4] = {0};
 
         /* LZCNT */
+#if defined(DRFLAC_HAS_LZCNT_INTRINSIC)
         drflac__cpuid(info, 0x80000001);
         drflac__gIsLZCNTSupported = (info[2] & (1 << 5)) != 0;
+#endif
 
         /* SSE2 */
         drflac__gIsSSE2Supported = drflac_has_sse2();
@@ -3115,7 +3119,7 @@ static drflac_bool32 drflac__decode_samples_with_residual__rice__scalar_zeroorde
     (void)shift;
     (void)coefficients;
 
-    riceParamMask  = ~((~0UL) << riceParam);
+    riceParamMask  = (drflac_uint32)~((~0UL) << riceParam);
 
     i = 0;
     while (i < count) {
@@ -3160,7 +3164,7 @@ static drflac_bool32 drflac__decode_samples_with_residual__rice__scalar(drflac_b
         return drflac__decode_samples_with_residual__rice__scalar_zeroorder(bs, bitsPerSample, count, riceParam, order, shift, coefficients, pSamplesOut);
     }
 
-    riceParamMask  = ~((~0UL) << riceParam);
+    riceParamMask  = (drflac_uint32)~((~0UL) << riceParam);
     pSamplesOutEnd = pSamplesOut + (count & ~3);
 
     if (bitsPerSample+shift > 32) {
@@ -3333,7 +3337,7 @@ static drflac_bool32 drflac__decode_samples_with_residual__rice__sse41_32(drflac
 
     const drflac_uint32 t[2] = {0x00000000, 0xFFFFFFFF};
 
-    riceParamMask    = ~((~0UL) << riceParam);
+    riceParamMask    = (drflac_uint32)~((~0UL) << riceParam);
     riceParamMask128 = _mm_set1_epi32(riceParamMask);
 
     /* Pre-load. */
@@ -3541,7 +3545,7 @@ static drflac_bool32 drflac__decode_samples_with_residual__rice__sse41_64(drflac
 
     drflac_assert(order <= 12);
 
-    riceParamMask    = ~((~0UL) << riceParam);
+    riceParamMask    = (drflac_uint32)~((~0UL) << riceParam);
     riceParamMask128 = _mm_set1_epi32(riceParamMask);
 
     prediction128 = _mm_setzero_si128();
@@ -6729,7 +6733,7 @@ static drflac_bool32 drflac__on_seek_ogg(void* pUserData, int offset, drflac_see
 
         if (oggbs->bytesRemainingInPage >= (size_t)bytesRemainingToSeek) {
             bytesSeeked += bytesRemainingToSeek;
-            (void)bytesSeeked; /* bytesSeeked is not normally used, but retained if needed for maintenance/debugging */
+            (void)bytesSeeked;  /* <-- Silence a dead store warning emitted by Clang Static Analyzer. */
             oggbs->bytesRemainingInPage -= bytesRemainingToSeek;
             break;
         }
