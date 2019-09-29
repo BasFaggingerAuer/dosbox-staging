@@ -1,6 +1,6 @@
 /*
 FLAC audio decoder. Choice of public domain or MIT-0. See license statements at the end of this file.
-dr_flac - v0.12.1 - 2019-xx-xx
+dr_flac - v0.12.1 - 2019-09-29
 
 David Reid - mackron@gmail.com
 */
@@ -2201,7 +2201,7 @@ static drflac_bool32 drflac__find_and_seek_to_next_sync_code(drflac_bs* bs)
 }
 
 
-#if !defined(DR_FLAC_NO_SIMD) && defined(DRFLAC_HAS_LZCNT_INTRINSIC)
+#if defined(DRFLAC_HAS_LZCNT_INTRINSIC)
 #define DRFLAC_IMPLEMENT_CLZ_LZCNT
 #endif
 #if  defined(_MSC_VER) && _MSC_VER >= 1400 && (defined(DRFLAC_X64) || defined(DRFLAC_X86))
@@ -10720,8 +10720,9 @@ drflac_bool32 drflac_next_cuesheet_track(drflac_cuesheet_track_iterator* pIter, 
 /*
 REVISION HISTORY
 ================
-v0.12.1 - 2019-xx-xx
+v0.12.1 - 2019-09-29
   - Fix some Clang Static Analyzer warnings.
+  - Fix an unused variable warning.
 
 v0.12.0 - 2019-09-23
   - API CHANGE: Add support for user defined memory allocation routines. This system allows the program to specify their own memory allocation
