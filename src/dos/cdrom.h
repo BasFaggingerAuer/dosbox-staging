@@ -142,6 +142,7 @@ private:
 		virtual bool   read(Bit8u *buffer, int seek, int count) = 0;
 		virtual bool   seek(Bit32u offset) = 0;
 		virtual Bit16u decode(Bit8u *buffer) = 0;
+		virtual Bit16u getEndian() = 0;
 		virtual Bit32u getRate() = 0;
 		virtual Bit8u  getChannels() = 0;
 		virtual int    getLength() = 0;
@@ -156,6 +157,7 @@ private:
 		bool   read(Bit8u *buffer, int seek, int count);
 		bool   seek(Bit32u offset);
 		Bit16u decode(Bit8u *buffer);
+		Bit16u getEndian();
 		Bit32u getRate() { return 44100; }
 		Bit8u  getChannels() { return 2; }
 		int    getLength();
@@ -171,6 +173,7 @@ private:
 		bool   read(Bit8u *buffer, int seek, int count) { return false; }
 		bool   seek(Bit32u offset);
 		Bit16u decode(Bit8u *buffer);
+		Bit16u getEndian();
 		Bit32u getRate();
 		Bit8u  getChannels();
 		int    getLength();
@@ -191,24 +194,24 @@ private:
 	};
 	
 public:
-	CDROM_Interface_Image		(Bit8u subUnit);
-	virtual ~CDROM_Interface_Image	(void);
-	void	InitNewMedia		(void);
-	bool	SetDevice		(char* path, int forceCD);
-	bool	GetUPC			(unsigned char& attr, char* upc);
-	bool	GetAudioTracks		(int& stTrack, int& end, TMSF& leadOut);
-	bool	GetAudioTrackInfo	(int track, TMSF& start, unsigned char& attr);
-	bool	GetAudioSub		(unsigned char& attr, unsigned char& track, unsigned char& index, TMSF& relPos, TMSF& absPos);
-	bool	GetAudioStatus		(bool& playing, bool& pause);
-	bool	GetMediaTrayStatus	(bool& mediaPresent, bool& mediaChanged, bool& trayOpen);
-	bool	PlayAudioSector		(unsigned long start,unsigned long len);
-	bool	PauseAudio		(bool resume);
-	bool	StopAudio		(void);
-	void	ChannelControl		(TCtrl ctrl);
-	bool	ReadSectors		(PhysPt buffer, bool raw, unsigned long sector, unsigned long num);
-	bool	LoadUnloadMedia		(bool unload);
-	bool	ReadSector		(Bit8u *buffer, bool raw, unsigned long sector);
-	bool	HasDataTrack		(void);
+	CDROM_Interface_Image           (Bit8u subUnit);
+	virtual ~CDROM_Interface_Image  (void);
+	void	InitNewMedia            (void);
+	bool	SetDevice               (char* path, int forceCD);
+	bool	GetUPC                  (unsigned char& attr, char* upc);
+	bool	GetAudioTracks          (int& stTrack, int& end, TMSF& leadOut);
+	bool	GetAudioTrackInfo       (int track, TMSF& start, unsigned char& attr);
+	bool	GetAudioSub             (unsigned char& attr, unsigned char& track, unsigned char& index, TMSF& relPos, TMSF& absPos);
+	bool	GetAudioStatus          (bool& playing, bool& pause);
+	bool	GetMediaTrayStatus      (bool& mediaPresent, bool& mediaChanged, bool& trayOpen);
+	bool	PlayAudioSector         (unsigned long start,unsigned long len);
+	bool	PauseAudio              (bool resume);
+	bool	StopAudio               (void);
+	void	ChannelControl          (TCtrl ctrl);
+	bool	ReadSectors             (PhysPt buffer, bool raw, unsigned long sector, unsigned long num);
+	bool	LoadUnloadMedia         (bool unload);
+	bool	ReadSector              (Bit8u *buffer, bool raw, unsigned long sector);
+	bool	HasDataTrack            (void);
 	
 static	CDROM_Interface_Image* images[26];
 

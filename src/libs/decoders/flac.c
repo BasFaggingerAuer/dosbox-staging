@@ -109,7 +109,7 @@ static int FLAC_open(Sound_Sample *sample, const char *ext)
 
     sample->actual.channels = dr->channels;
     sample->actual.rate = dr->sampleRate;
-    sample->actual.format = AUDIO_S16SYS;
+    sample->actual.format = AUDIO_S16SYS; /* returns native byte-order based on architecture */
 
     const Uint64 frames = (Uint64) dr->totalPCMFrameCount;
     if (frames == 0)

@@ -131,7 +131,7 @@ static int VORBIS_open(Sound_Sample *sample, const char *ext)
 	}
     internal->decoder_private = stb;
     sample->flags = SOUND_SAMPLEFLAG_CANSEEK;
-    sample->actual.format = AUDIO_S16SYS;
+    sample->actual.format = AUDIO_S16SYS; // returns byte-order native to the running architecture
     sample->actual.channels = stb->channels;
     sample->actual.rate = stb->sample_rate;
     const unsigned int num_frames = stb_vorbis_stream_length_in_samples(stb);

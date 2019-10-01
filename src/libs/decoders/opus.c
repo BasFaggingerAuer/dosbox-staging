@@ -370,7 +370,7 @@ static Sint32 opus_open(Sound_Sample* sample, const char* ext)
 	// Gather static properties about our stream (channels, seek-ability, format, and duration)
 	sample->actual.channels = (Uint8)(oh->channel_count);
 	sample->flags = op_seekable(of) ? SOUND_SAMPLEFLAG_CANSEEK: 0;
-	sample->actual.format = sample->desired.format ? sample->desired.format : AUDIO_S16SYS;
+	sample->actual.format = AUDIO_S16LSB; // returns least-significant-byte order regardless of architecture
 
 	ogg_int64_t total_time = op_pcm_total(of, -1); // total PCM samples in the stream
 	internal->total_time = total_time == OP_EINVAL ? -1 : // total milliseconds in the stream

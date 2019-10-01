@@ -159,7 +159,7 @@ static Sint32 MP3_open(Sound_Sample* const sample, const char* const ext)
                 sample->flags = SOUND_SAMPLEFLAG_CANSEEK;
                 sample->actual.channels = p_mp3->p_dr->channels;
                 sample->actual.rate = p_mp3->p_dr->sampleRate;
-                sample->actual.format = AUDIO_S16SYS;  /* dr_mp3 only does float. */
+                sample->actual.format = AUDIO_S16SYS;  // returns native byte-order based on architecture
                 const Uint64 num_frames = populate_seek_points(internal->rw, p_mp3, MP3_FAST_SEEK_FILENAME); // status will be 0 or pcm_frame_count
                 if (num_frames != 0) {
                     const unsigned int rate = p_mp3->p_dr->sampleRate;

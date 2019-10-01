@@ -89,6 +89,17 @@ int CDROM_Interface_Image::BinaryFile::getLength()
 	return length;
 }
 
+Bit16u CDROM_Interface_Image::BinaryFile::getEndian()
+{
+	// Image files are read into native-endian byte-order
+	#if defined(WORDS_BIGENDIAN)
+	return AUDIO_S16MSB;
+	#else
+	return AUDIO_S16LSB;
+	#endif
+}
+
+
 bool CDROM_Interface_Image::BinaryFile::seek(Bit32u offset)
 {
 	file->seekg(offset, ios::beg);
@@ -143,6 +154,15 @@ Bit16u CDROM_Interface_Image::AudioFile::decode(Bit8u *buffer)
 	const Bit16u bytes = Sound_Decode(sample);
 	memcpy(buffer, sample->buffer, bytes);
 	return bytes;
+}
+
+Bit16u CDROM_Interface_Image::AudioFile::getEndian()
+{
+	// Assume little-endian if we can't explicitly get byte-order
+	Bit16u format(AUDIO_S16LSB);
+	if (sample)
+		format = sample->actual.format;
+	return format;
 }
 
 Bit32u CDROM_Interface_Image::AudioFile::getRate()
@@ -361,7 +381,7 @@ bool CDROM_Interface_Image::PlayAudioSector(unsigned long start, unsigned long l
 	const int track = GetTrack(start) - 1;
 
 	// The CDROM Red Book standard allows up to 99 tracks, which includes the data track
-	if ( track < 0 || track > 98 )
+	if ( track < 0 || track > 99 )
 		LOG(LOG_MISC, LOG_WARN)("Game tried to load track #%d, which is invalid", track);
 
 	// Attempting to play zero sectors is a no-op
@@ -402,16 +422,35 @@ bool CDROM_Interface_Image::PlayAudioSector(unsigned long start, unsigned long l
 
 			// Assign either the stereo or mono version of the Mixer's AddChannel function
 			if (channels == 2) {
-				#if defined(WORDS_BIGENDIAN)
-				player.addSamples = &MixerChannel::AddSamples_s16_nonnative;
-				#else
-				player.addSamples = &MixerChannel::AddSamples_s16;
+				// Some codecs always return a particular byte-order, such as Opus which is always
+				// little even on big-endian machines, therefore we query the track's format to ensure
+				// we assign the right mixing function.
+				//
+				// Note that SDL is also always little-endian, so they treat big-endian as "non-native"
+				// even on big-endian machines.
+				#if defined(WORDS_BIGENDIAN) // machine is big-endian
+				if (trackFile->getEndian() == AUDIO_S16LSB) // but track codec returns little-endian
+					player.addSamples = &MixerChannel::AddSamples_s16;
+				else
+					player.addSamples = &MixerChannel::AddSamples_s16_nonnative;
+
+				#else // machine is little-endian
+				if (trackFile->getEndian() == AUDIO_S16MSB) // but track codec returns big-endian
+					player.addSamples = &MixerChannel::AddSamples_s16_nonnative;
+				else
+					player.addSamples = &MixerChannel::AddSamples_s16;
 				#endif
 			} else {
-				#if defined(WORDS_BIGENDIAN)
-				player.addSamples = &MixerChannel::AddSamples_m16_nonnative;
-				#else
-				player.addSamples = &MixerChannel::AddSamples_m16;
+				#if defined(WORDS_BIGENDIAN) // machine is big-endian
+				if (trackFile->getEndian() == AUDIO_S16LSB) // but track codec returns little-endian
+					player.addSamples = &MixerChannel::AddSamples_m16;
+				else
+					player.addSamples = &MixerChannel::AddSamples_m16_nonnative;
+				#else // machine is little-endian
+				if (trackFile->getEndian() == AUDIO_S16MSB) // but the track codec return big-endian
+					player.addSamples = &MixerChannel::AddSamples_m16_nonnative;
+				else
+					player.addSamples = &MixerChannel::AddSamples_m16;
 				#endif
 			}
 
