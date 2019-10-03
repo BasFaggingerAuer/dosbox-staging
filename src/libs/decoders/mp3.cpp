@@ -37,6 +37,7 @@
 #include "dr_mp3.h" // provides: drmp3
 
 #include "../../../include/logging.h" // provides: LOG_MSG
+
 #include "mp3_seek_table.h" // provides: populate_seek_table and SDL_Sound headers
 
 #include "SDL_sound.h"

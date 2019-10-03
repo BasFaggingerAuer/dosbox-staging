@@ -245,6 +245,14 @@
     <ClCompile Include="..\src\ints\int10_vptable.cpp" />
     <ClCompile Include="..\src\ints\mouse.cpp" />
     <ClCompile Include="..\src\ints\xms.cpp" />
+    <ClCompile Include="..\src\libs\decoders\audio_convert.c" />
+    <ClCompile Include="..\src\libs\decoders\flac.c" />
+    <ClCompile Include="..\src\libs\decoders\mp3.cpp" />
+    <ClCompile Include="..\src\libs\decoders\mp3_seek_table.cpp" />
+    <ClCompile Include="..\src\libs\decoders\SDL_sound.c" />
+    <ClCompile Include="..\src\libs\decoders\vorbis.cpp" />
+    <ClCompile Include="..\src\libs\decoders\wav.c" />
+    <ClCompile Include="..\src\libs\decoders\xxhash.c" />
     <ClCompile Include="..\src\libs\gui_tk\gui_tk.cpp" />
     <ClCompile Include="..\src\misc\cross.cpp" />
     <ClCompile Include="..\src\misc\messages.cpp" />
@@ -358,6 +366,14 @@
     <ClInclude Include="..\src\hardware\serialport\softmodem.h" />
     <ClInclude Include="..\src\ints\int10.h" />
     <ClInclude Include="..\src\ints\xms.h" />
+    <ClInclude Include="..\src\libs\decoders\archive.h" />
+    <ClInclude Include="..\src\libs\decoders\dr_flac.h" />
+    <ClInclude Include="..\src\libs\decoders\dr_mp3.h" />
+    <ClInclude Include="..\src\libs\decoders\mp3_seek_table.h" />
+    <ClInclude Include="..\src\libs\decoders\SDL_sound.h" />
+    <ClInclude Include="..\src\libs\decoders\SDL_sound_internal.h" />
+    <ClInclude Include="..\src\libs\decoders\stb_vorbis.h" />
+    <ClInclude Include="..\src\libs\decoders\xxhash.h" />
     <ClInclude Include="..\src\platform\visualc\config.h" />
     <ClInclude Include="..\src\platform\visualc\unistd.h" />
   </ItemGroup>

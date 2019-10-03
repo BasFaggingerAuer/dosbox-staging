@@ -50,7 +50,7 @@
 /* All these externs may be missing; we check SOUND_SUPPORTS_xxx before use. */
 extern const Sound_DecoderFunctions __Sound_DecoderFunctions_WAV;
 extern const Sound_DecoderFunctions __Sound_DecoderFunctions_VORBIS;
-extern const Sound_DecoderFunctions __Sound_DecoderFunctions_OPUS;
+// extern const Sound_DecoderFunctions __Sound_DecoderFunctions_OPUS;
 extern const Sound_DecoderFunctions __Sound_DecoderFunctions_FLAC;
 extern const Sound_DecoderFunctions __Sound_DecoderFunctions_MP3;
 
@@ -64,7 +64,7 @@ static decoder_element decoders[] =
 {
     { 0, &__Sound_DecoderFunctions_WAV },
     { 0, &__Sound_DecoderFunctions_VORBIS },
-    { 0, &__Sound_DecoderFunctions_OPUS },
+//    { 0, &__Sound_DecoderFunctions_OPUS },
     { 0, &__Sound_DecoderFunctions_FLAC },
     { 0, &__Sound_DecoderFunctions_MP3 },
     { 0, NULL }
@@ -283,7 +283,7 @@ void __Sound_SetError(const char *str)
     } /* if */
 
     err->error_available = 1;
-    strncpy(err->error_string, str, sizeof (err->error_string));
+	snprintf(err->error_string, sizeof(err->error_string), "%s", str);
     err->error_string[sizeof (err->error_string) - 1] = '\0';
 } /* __Sound_SetError */
 

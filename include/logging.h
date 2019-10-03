@@ -81,7 +81,13 @@ struct LOG
 	void operator()(char const* , double , double , double , char const* )					{ }
 }; //add missing operators to here
 	//try to avoid anything smaller than bit32...
-void GFX_ShowMsg(char const* format,...) GCC_ATTRIBUTE(__format__(__printf__, 1, 2));
+
+#if _MSC_VER
+void GFX_ShowMsg(char const* format, ...);
+#else
+void GFX_ShowMsg(char const* format, ...) GCC_ATTRIBUTE(__format__(__printf__, 1, 2));
+#endif
+
 #define LOG_MSG GFX_ShowMsg
 
 #endif //C_DEBUG

@@ -38,7 +38,7 @@
 #include <string.h> // memcpy
 #include <math.h>
 
-#include "../../../include/logging.h" // provides: LOG_MSG
+// #include "../../../include/logging.h" // provides: LOG_MSG
 
 #include "SDL_sound.h"
 #define __SDL_SOUND_INTERNAL__
@@ -126,7 +126,7 @@ static int VORBIS_open(Sound_Sample *sample, const char *ext)
     stb_vorbis *stb = stb_vorbis_open_rwops(rw, 0, &err, NULL);
 
 	if(stb == NULL) {
-		LOG_MSG("%s (error code: %d)", vorbis_error_string(err), err);
+		// LOG_MSG("%s (error code: %d)", vorbis_error_string(err), err);
         return 0;
 	}
     internal->decoder_private = stb;
@@ -194,7 +194,7 @@ static int VORBIS_rewind(Sound_Sample *sample)
     stb_vorbis *stb = (stb_vorbis *) internal->decoder_private;
 
     if (!stb_vorbis_seek_start(stb)) {
-        LOG_MSG("%s", vorbis_error_string(stb_vorbis_get_error(stb)));
+        // LOG_MSG("%s", vorbis_error_string(stb_vorbis_get_error(stb)));
         return 0;
     }
 
@@ -211,7 +211,7 @@ static int VORBIS_seek(Sound_Sample *sample, Uint32 ms)
     const unsigned int sampnum = (unsigned int) frame_offset;
 
     if(!stb_vorbis_seek(stb, sampnum)) {
-        LOG_MSG("%s", vorbis_error_string(stb_vorbis_get_error(stb)));
+        // LOG_MSG("%s", vorbis_error_string(stb_vorbis_get_error(stb)));
         return 0;
     }
     return 1;

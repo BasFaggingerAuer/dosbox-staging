@@ -81,7 +81,7 @@
 
 // Local headers
 #include "xxhash.h"
-#include "../../../include/logging.h"
+// #include "../../../include/logging.h"
 #include "mp3_seek_table.h"
 
 // C++ scope modifiers
@@ -128,7 +128,7 @@ const Uint64 calculate_stream_hash(struct SDL_RWops* const context) {
     SDL_RWseek(context, 0, RW_SEEK_END);
     const Sint64 stream_size = SDL_RWtell(context);
     if (stream_size <= 0) {
-        LOG_MSG("MP3: get_stream_size returned %ld, but should be positive", stream_size);
+        // LOG_MSG("MP3: get_stream_size returned %ld, but should be positive", stream_size);
         return 0;
     }
 
@@ -193,7 +193,7 @@ const Uint64 generate_new_seek_points(const char* filename,
     if (   result != DRMP3_TRUE
         || mp3_frame_count < FRAMES_PER_SEEK_POINT
         || pcm_frame_count < FRAMES_PER_SEEK_POINT) {
-        LOG_MSG("MP3: failed to determine or find sufficient mp3 and pcm frames");
+        // LOG_MSG("MP3: failed to determine or find sufficient mp3 and pcm frames");
         return 0;
     }
 
@@ -209,7 +209,7 @@ const Uint64 generate_new_seek_points(const char* filename,
                      reinterpret_cast<drmp3_seek_point*>(seek_points_vector.data()));
 
     if (result != DRMP3_TRUE || num_seek_points == 0) {
-        LOG_MSG("MP3: failed to calculate sufficient seek points for stream");
+        // LOG_MSG("MP3: failed to calculate sufficient seek points for stream");
         return 0;
     }
 
@@ -298,7 +298,7 @@ const Uint64 populate_seek_points(struct SDL_RWops* const context, mp3_t* p_mp3,
     // Calculate the stream's xxHash value.
     Uint64 stream_hash = calculate_stream_hash(context);
     if (stream_hash == 0) {
-        LOG_MSG("MP3: could not compute the hash of the stream");
+        // LOG_MSG("MP3: could not compute the hash of the stream");
         return 0;
     }
 
@@ -320,7 +320,7 @@ const Uint64 populate_seek_points(struct SDL_RWops* const context, mp3_t* p_mp3,
                                                    pcm_frame_count_table,
                                                    p_mp3->seek_points_vector);
         if (pcm_frame_count == 0) {
-            LOG_MSG("MP3: could not load existing or generate new seek points for the stream");
+            // LOG_MSG("MP3: could not load existing or generate new seek points for the stream");
             return 0;
         }
     }
@@ -331,7 +331,7 @@ const Uint64 populate_seek_points(struct SDL_RWops* const context, mp3_t* p_mp3,
                                  p_mp3->seek_points_vector.size(),
                                  reinterpret_cast<drmp3_seek_point*>(p_mp3->seek_points_vector.data()));
     if (result != DRMP3_TRUE) {
-        LOG_MSG("MP3: could not bind the seek points to the dr_mp3 object");
+        // LOG_MSG("MP3: could not bind the seek points to the dr_mp3 object");
         return 0;
     }
     return pcm_frame_count;
