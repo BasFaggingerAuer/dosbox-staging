@@ -400,7 +400,9 @@ static int int_log2 (int val) {
 }
 
 static SDL_Window * GFX_SetSDLWindowMode(Bit16u width, Bit16u height, bool fullscreen, SCREEN_TYPES screenType) {
-	static SCREEN_TYPES lastType = SCREEN_SURFACE; 
+	// static SCREEN_TYPES lastType = SCREEN_SURFACE;
+	static SCREEN_TYPES lastType = SCREEN_OPENGL;
+
 	if (sdl.renderer) {
 		SDL_DestroyRenderer(sdl.renderer);
 		sdl.renderer=0;
@@ -430,22 +432,34 @@ static SDL_Window * GFX_SetSDLWindowMode(Bit16u width, Bit16u height, bool fulls
 	 * it is our very first time then we simply create a new window.
 	 */
 	if (!sdl.window || (lastType != screenType)) {
-		lastType = screenType;
+
+		// FIXME <- why we can't just stick to the window that was created already?
+		// why juggle surface and OpenGL during startup?!
+		// lastType = screenType;
+		//
 		if (sdl.window) {
 			SDL_DestroyWindow(sdl.window);
 		}
+
 		/* Don't create a fullscreen immediately. Reasons:
 		 * 1. This theoretically allows us to set window resolution and
 		 * then let SDL2 remember it for later (even if not actually done).
 		 * 2. It's a bit less glitchy to set a custom display mode for a
 		 * full screen, albeit it's still not perfect (at least on X11).
 		 */
+
+		// WIP: those comments above are bullshit
+		uint32_t flags = SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN_DESKTOP;
+			// ((screenType == SCREEN_OPENGL) ? SDL_WINDOW_OPENGL : 0) | (fullscreen ? SDL_WINDOW_FULLSCREEN : SDL_WINDOW_SHOWN);
+
+		// fprintf(stderr, ":: create window: %d == opengl\n", screenType == SCREEN_OPENGL);
+
 		sdl.window = SDL_CreateWindow("",
-		                 SDL_WINDOWPOS_UNDEFINED_DISPLAY(sdl.displayNumber),
-		                 SDL_WINDOWPOS_UNDEFINED_DISPLAY(sdl.displayNumber),
-		                 width, height,
-		                 ((screenType == SCREEN_OPENGL) ? SDL_WINDOW_OPENGL : 0) | SDL_WINDOW_SHOWN
-		);
+		                 //SDL_WINDOWPOS_UNDEFINED_DISPLAY(sdl.displayNumber),
+		                 //SDL_WINDOWPOS_UNDEFINED_DISPLAY(sdl.displayNumber),
+		                 SDL_WINDOWPOS_UNDEFINED,
+		                 SDL_WINDOWPOS_UNDEFINED,
+		                 width, height, flags);
 		if (!sdl.window) {
 			return sdl.window;
 		}
@@ -497,6 +511,7 @@ SDL_Rect GFX_GetSDLSurfaceSubwindowDims(Bit16u width, Bit16u height) {
 	rect.h=height;
 	return rect;
 }
+
 
 // Currently used for an initial test here
 static SDL_Window * GFX_SetSDLOpenGLWindow(Bit16u width, Bit16u height) {
@@ -1278,9 +1293,18 @@ static void GUI_StartUp(Section * sec) {
 	sdl.renderer=0;
 	sdl.rendererDriver = section->Get_string("renderer");
 
+
+	// TODO: splash screen code starts around here
+	//
+	// Frankly, this whole file was POS in SDL1.2 and is still POS in SDL2
+	// it needs to be rewritten from scratch.
+	//
+	const int splash_size_w = 640;
+	const int splash_size_h = 400;
+
 #if C_OPENGL
    if(sdl.desktop.want_type==SCREEN_OPENGL){ /* OPENGL is requested */
-	if (!GFX_SetSDLOpenGLWindow(640,400)) {
+	if (!GFX_SetSDLOpenGLWindow(splash_size_w, splash_size_h)) {
 		LOG_MSG("Could not create OpenGL window, switching back to surface");
 		sdl.desktop.want_type=SCREEN_SURFACE;
 	} else {
@@ -1317,12 +1341,29 @@ static void GUI_StartUp(Section * sec) {
 	} /* OPENGL is requested end */
 
 #endif	//OPENGL
+
+
 	/* Initialize screen for first time */
-	if (!GFX_SetSDLSurfaceWindow(640,400))
+	//
+   	// ^^^^ this comment is false, it is actually a second time
+	//
+	if (!GFX_SetSDLSurfaceWindow(splash_size_w, splash_size_h))
 		E_Exit("Could not initialize video: %s",SDL_GetError());
 	sdl.surface = SDL_GetWindowSurface(sdl.window);
 	if (sdl.surface == NULL) E_Exit("Could not retrieve window surface: %s",SDL_GetError());
-	SDL_Rect splash_rect=GFX_GetSDLSurfaceSubwindowDims(640,400);
+
+	// SDL_Rect splash_rect=GFX_GetSDLSurfaceSubwindowDimsFull(640,400);
+	//
+
+	SDL_Rect splash_rect;
+	SDL_GetWindowSize(sdl.window, &splash_rect.x, &splash_rect.y);
+	splash_rect.x -= splash_size_w;
+	splash_rect.y -= splash_size_h;
+	splash_rect.x /= 2;
+	splash_rect.y /= 2;
+	splash_rect.w = splash_size_w;
+	splash_rect.h = splash_size_h;
+
 	sdl.desktop.sdl2pixelFormat = sdl.surface->format->format;
 	LOG_MSG("SDL:Current window pixel format: %s", SDL_GetPixelFormatName(sdl.desktop.sdl2pixelFormat));
 	/* Do NOT use SDL_BITSPERPIXEL here - It returns 24 for
@@ -1347,18 +1388,22 @@ static void GUI_StartUp(Section * sec) {
 //#endif
 
 /* Please leave the Splash screen stuff in working order in DOSBox. We spend a lot of time making DOSBox. */
-	SDL_Surface* splash_surf = SDL_CreateRGBSurface(SDL_SWSURFACE, 640, 400, 32, rmask, gmask, bmask, 0);
+	SDL_Surface* splash_surf = SDL_CreateRGBSurface(SDL_SWSURFACE,
+							splash_size_w,
+							splash_size_h,
+							32, rmask, gmask, bmask, 0);
 	if (splash_surf) {
 		SDL_SetSurfaceBlendMode(splash_surf, SDL_BLENDMODE_BLEND);
 		SDL_FillRect(splash_surf, NULL, SDL_MapRGB(splash_surf->format, 0, 0, 0));
 
-		Bit8u* tmpbufp = new Bit8u[640*400*3];
-		GIMP_IMAGE_RUN_LENGTH_DECODE(tmpbufp,gimp_image.rle_pixel_data,640*400,3);
-		for (Bitu y=0; y<400; y++) {
+		const int splash_buffer_size = splash_size_w * splash_size_h;
+		Bit8u* tmpbufp = new Bit8u[splash_buffer_size * 3];
+		GIMP_IMAGE_RUN_LENGTH_DECODE(tmpbufp, gimp_image.rle_pixel_data, splash_buffer_size, 3);
+		for (Bitu y = 0; y < splash_size_h; y++) {
 
-			Bit8u* tmpbuf = tmpbufp + y*640*3;
+			Bit8u* tmpbuf = tmpbufp + (y * splash_size_w * 3);
 			Bit32u * draw=(Bit32u*)(((Bit8u *)splash_surf->pixels)+((y)*splash_surf->pitch));
-			for (Bitu x=0; x<640; x++) {
+			for (Bitu x=0; x<splash_size_w; x++) {
 //#if SDL_BYTEORDER == SDL_BIG_ENDIAN
 //				*draw++ = tmpbuf[x*3+2]+tmpbuf[x*3+1]*0x100+tmpbuf[x*3+0]*0x10000+0x00000000;
 //#else
@@ -1369,8 +1414,8 @@ static void GUI_StartUp(Section * sec) {
 
 		bool exit_splash = false;
 
-		static Bitu max_splash_loop = 600;
-		static Bitu splash_fade = 100;
+		static Bitu max_splash_loop = 2000;
+		static Bitu splash_fade = 1000;
 		static bool use_fadeout = true;
 
 		for (Bit32u ct = 0,startticks = GetTicks();ct < max_splash_loop;ct = GetTicks()-startticks) {
@@ -1408,6 +1453,8 @@ static void GUI_StartUp(Section * sec) {
 		delete [] tmpbufp;
 
 	}
+
+	// splash code ends around here TODO
 
 	/* Get some Event handlers */
 	MAPPER_AddHandler(KillSwitch,MK_f9,MMOD1,"shutdown","ShutDown");
@@ -1803,6 +1850,7 @@ static void show_warning(char const * const message) {
 #endif
 	printf("%s",message);
 	if(textonly) return;
+	// What?! Why?! TODO investigate
 	if (!sdl.window)
 		if (!GFX_SetSDLSurfaceWindow(640,400)) return;
 	sdl.surface = SDL_GetWindowSurface(sdl.window);
