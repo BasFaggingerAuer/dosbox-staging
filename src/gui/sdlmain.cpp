@@ -1157,7 +1157,8 @@ static void OutputString(Bitu x,Bitu y,const char * text,Bit32u color,Bit32u col
 	}
 }
 
-#include "dosbox_splash.h"
+//#include "dosbox_splash.h"
+#include "dosbox_staging_splash.c"
 
 //extern void UI_Run(bool);
 void Restart(bool pressed);
@@ -1299,8 +1300,9 @@ static void GUI_StartUp(Section * sec) {
 	// Frankly, this whole file was POS in SDL1.2 and is still POS in SDL2
 	// it needs to be rewritten from scratch.
 	//
-	const int splash_size_w = 640;
-	const int splash_size_h = 400;
+	// TODO: gimp_image includes size, so what's was the point of hardcoding it in original code?
+	const int splash_size_w = 750;
+	const int splash_size_h = 750;
 
 #if C_OPENGL
    if(sdl.desktop.want_type==SCREEN_OPENGL){ /* OPENGL is requested */
