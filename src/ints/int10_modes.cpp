@@ -578,6 +578,8 @@ bool INT10_SetVideoMode_OTHER(Bit16u mode,bool clearmem) {
 		if (CurMode->mode!=0x9) scanline=2;
 		else scanline=4;
 		break;
+	default:
+		break;
 	}
 	IO_WriteW(crtc_base,0x09 | (scanline-1) << 8);
 	//Setup the CGA palette using VGA DAC palette
