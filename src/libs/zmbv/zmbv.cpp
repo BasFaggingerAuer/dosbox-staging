@@ -194,13 +194,9 @@ INLINE void VideoCodec::AddXorBlock(int vx,int vy,FrameBlock * block) {
 
 template<class P>
 void VideoCodec::AddXorFrame(void) {
-	int written=0;
-	int lastvector=0;
 	signed char * vectors=(signed char*)&work[workUsed];
 	/* Align the following xor data on 4 byte boundary*/
 	workUsed=(workUsed + blockcount*2 +3) & ~3;
-	int totalx=0;
-	int totaly=0;
 	for (int b=0;b<blockcount;b++) {
 		FrameBlock * block=&blocks[b];
 		int bestvx = 0;
