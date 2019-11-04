@@ -94,7 +94,6 @@ class TCPClientSocket {
 	
 	// buffered send functions
 	bool SendByteBuffered(Bit8u data);
-	bool SendArrayBuffered(Bit8u* data, Bitu bufsize);
 
 	private:
 	TCPsocket mysock;

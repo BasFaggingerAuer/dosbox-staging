@@ -218,66 +218,36 @@ Bits TCPClientSocket::GetcharNonBlock() {
 	}
 	else return -1;
 }
+
 bool TCPClientSocket::Putchar(Bit8u data) {
-	if(SDLNet_TCP_Send(mysock, &data, 1)!=1) {
-		isopen=false;
-		return false;
-	}
-	return true;
+	return SendArray(&data, 1);
 }
 
 bool TCPClientSocket::SendArray(Bit8u* data, Bitu bufsize) {
-	if(SDLNet_TCP_Send(mysock, data, bufsize)!=bufsize) {
-		isopen=false;
+	if (SDLNet_TCP_Send(mysock, data, bufsize) != (int)bufsize) {
+		isopen = false;
 		return false;
 	}
 	return true;
 }
 
 bool TCPClientSocket::SendByteBuffered(Bit8u data) {
-	
-	if(sendbufferindex==(sendbuffersize-1)) {
-		// buffer is full, get rid of it
-		sendbuffer[sendbufferindex]=data;
-		sendbufferindex=0;
-		
-		if(SDLNet_TCP_Send(mysock, sendbuffer, sendbuffersize)!=sendbuffersize) {
-			isopen=false;
-			return false;
-		}
-	} else {
-		sendbuffer[sendbufferindex]=data;
+	if (sendbufferindex < (sendbuffersize - 1)) {
+		sendbuffer[sendbufferindex] = data;
 		sendbufferindex++;
+		return true;
 	}
-	return true;
+	// buffer is full, get rid of it
+	sendbuffer[sendbufferindex] = data;
+	sendbufferindex = 0;
+	return SendArray(sendbuffer, sendbuffersize);
 }
-/*
-bool TCPClientSocket::SendArrayBuffered(Bit8u* data, Bitu bufsize) {
-	
-	Bitu bytes
-	while(
-	
-	// first case, buffer already full
-	if(sendbufferindex==(sendbuffersize-1)) {
-		// buffer is full, get rid of it
-		sendbuffer[sendbufferindex]=data;
-		sendbufferindex=0;
-		
-		if(SDLNet_TCP_Send(mysock, sendbuffer, sendbuffersize)!=sendbuffersize) {
-			isopen=false;
-			return false;
-		}
-	}
-}
-*/
+
 void TCPClientSocket::FlushBuffer() {
-	if(sendbufferindex) {
-		if(SDLNet_TCP_Send(mysock, sendbuffer,
-			sendbufferindex)!=sendbufferindex) {
-			isopen=false;
+	if (sendbufferindex) {
+		if (!SendArray(sendbuffer, sendbufferindex))
 			return;
-		}
-		sendbufferindex=0;
+		sendbufferindex = 0;
 	}
 }
 
