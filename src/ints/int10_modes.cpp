@@ -1059,6 +1059,8 @@ bool INT10_SetVideoMode(Bit16u mode) {
 		if (CurMode->special & _VGA_PIXEL_DOUBLE)
 			mode_control |= 0x08;
 		break;
+	default:
+		break;
 	}
 
 	IO_Write(crtc_base,0x17);IO_Write(crtc_base+1,mode_control);
