@@ -466,7 +466,7 @@ static void FinishSetMode(bool clearmem) {
 			for (Bit16u ct=0;ct<16*1024;ct++) real_writew(seg,ct*2,0x0720);
 			break;
 		}
-		case M_EGA:	
+		case M_EGA:
 		case M_VGA:
 		case M_LIN8:
 		case M_LIN4:
@@ -476,6 +476,8 @@ static void FinishSetMode(bool clearmem) {
 			/* Hack we just access the memory directly */
 			memset(vga.mem.linear,0,vga.vmemsize);
 			memset(vga.fastmem, 0, vga.vmemsize<<1);
+		default:
+			break;
 		}
 	}
 	/* Setup the BIOS */
