@@ -1152,7 +1152,6 @@ bool INT10_SetVideoMode(Bit16u mode) {
 		case 0x0f:
 			att_data[0x12]=0x05;	// planes 0 and 2 enabled
 			att_data[0x10]|=0x0a;	// monochrome and blinking
-	
 			att_data[0x01]=0x08; // low-intensity
 			att_data[0x04]=0x18; // blink-on case
 			att_data[0x05]=0x18; // high-intensity
@@ -1232,6 +1231,8 @@ att_text16:
 	case M_LIN32:
 		for (Bit8u ct=0;ct<16;ct++) att_data[ct]=ct;
 		att_data[0x10]=0x41;		//Color Graphics 8-bit
+		break;
+	default:
 		break;
 	}
 	IO_Read(mono_mode ? 0x3ba : 0x3da);
