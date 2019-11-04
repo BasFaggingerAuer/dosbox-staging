@@ -509,11 +509,10 @@ Bitu IPX_IntHandler(void) {
 static void pingAck(IPaddress retAddr) {
 	IPXHeader regHeader;
 	UDPpacket regPacket;
-	Bits result;
 
 	SDLNet_Write16(0xffff, regHeader.checkSum);
 	SDLNet_Write16(sizeof(regHeader), regHeader.length);
-	
+
 	SDLNet_Write32(0, regHeader.dest.network);
 	PackIP(retAddr, &regHeader.dest.addr.byIP);
 	SDLNet_Write16(0x2, regHeader.dest.socket);
@@ -528,8 +527,8 @@ static void pingAck(IPaddress retAddr) {
 	regPacket.len = sizeof(regHeader);
 	regPacket.maxlen = sizeof(regHeader);
 	regPacket.channel = UDPChannel;
-	
-	result = SDLNet_UDP_Send(ipxClientSocket, regPacket.channel, &regPacket);
+
+	SDLNet_UDP_Send(ipxClientSocket, regPacket.channel, &regPacket);
 }
 
 static void pingSend(void) {

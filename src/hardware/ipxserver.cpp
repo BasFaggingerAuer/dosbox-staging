@@ -125,11 +125,10 @@ bool IPX_isConnectedToServer(Bits tableNum, IPaddress ** ptrAddr) {
 static void ackClient(IPaddress clientAddr) {
 	IPXHeader regHeader;
 	UDPpacket regPacket;
-	Bits result;
 
 	SDLNet_Write16(0xffff, regHeader.checkSum);
 	SDLNet_Write16(sizeof(regHeader), regHeader.length);
-	
+
 	SDLNet_Write32(0, regHeader.dest.network);
 	PackIP(clientAddr, &regHeader.dest.addr.byIP);
 	SDLNet_Write16(0x2, regHeader.dest.socket);
@@ -143,9 +142,10 @@ static void ackClient(IPaddress clientAddr) {
 	regPacket.len = sizeof(regHeader);
 	regPacket.maxlen = sizeof(regHeader);
 	regPacket.address = clientAddr;
-	// Send registration string to client.  If client doesn't get this, client will not be registered
-	result = SDLNet_UDP_Send(ipxServerSocket,-1,&regPacket);
 
+	// Send registration string to client.
+	// If client doesn't get this, client will not be registered
+	SDLNet_UDP_Send(ipxServerSocket,-1,&regPacket);
 }
 
 static void IPX_ServerLoop() {
