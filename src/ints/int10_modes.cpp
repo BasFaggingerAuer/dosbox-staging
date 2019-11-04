@@ -1135,6 +1135,8 @@ bool INT10_SetVideoMode(Bit16u mode) {
 			gfx_data[0x6]|=0x0f;		//graphics mode at at 0xb800=0xbfff
 		}
 		break;
+	default:
+		break;
 	}
 	for (Bit8u ct=0;ct<GFX_REGS;ct++) {
 		IO_Write(0x3ce,ct);
