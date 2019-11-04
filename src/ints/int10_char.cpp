@@ -610,6 +610,9 @@ void INT10_WriteChar(Bit8u chr,Bit8u attr,Bit8u page,Bit16u count,bool showattr)
 				page=0;
 				pospage=0;
 				break;
+			case MCH_HERC:
+			case MCH_TANDY:
+				break;
 		}
 	}
 
