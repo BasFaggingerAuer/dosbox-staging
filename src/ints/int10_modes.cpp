@@ -1311,6 +1311,8 @@ dac_text16:
 				IO_Write(0x3c9,vga_palette[i][2]);
 			}
 			break;
+		default:
+			break;
 		}
 		if (IS_VGA_ARCH) {
 			/* check if gray scale summing is enabled */
