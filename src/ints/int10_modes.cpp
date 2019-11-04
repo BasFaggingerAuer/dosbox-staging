@@ -830,6 +830,8 @@ bool INT10_SetVideoMode(Bit16u mode) {
 		seq_data[2]|=0xf;				//Enable all planes for writing
 		seq_data[4]|=0xc;				//Graphics - odd/even - Chained
 		break;
+	default:
+		break;
 	}
 	for (Bit8u ct=0;ct<SEQ_REGS;ct++) {
 		IO_Write(0x3c4,ct);
