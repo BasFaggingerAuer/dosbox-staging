@@ -145,17 +145,17 @@ void CSerialModem::SendNumber(Bitu val) {
 
 void CSerialModem::SendRes(ResTypes response) {
 	char const * string;Bitu code;
-	switch (response)
-	{
-		case ResNONE:		return;
-		case ResOK:			string="OK"; code=0; break;
-		case ResERROR:		string="ERROR"; code=4; break;
-		case ResRING:		string="RING"; code=2; break;
-		case ResNODIALTONE: string="NO DIALTONE"; code=6; break;
-		case ResNOCARRIER:	string="NO CARRIER" ;code=3; break;
-		case ResCONNECT:	string="CONNECT 57600"; code=1; break;
+	switch (response) {
+		case ResOK:         code = 0; string = "OK"; break;
+		case ResCONNECT:    code = 1; string = "CONNECT 57600"; break;
+		case ResRING:       code = 2; string = "RING"; break;
+		case ResNOCARRIER:  code = 3; string = "NO CARRIER"; break;
+		case ResERROR:      code = 4; string = "ERROR"; break;
+		case ResNODIALTONE: code = 6; string = "NO DIALTONE"; break;
+		case ResBUSY:       code = 7; string = "BUSY"; break;
+		case ResNONE:       return;
 	}
-	
+
 	if(doresponse!=1) {
 		if(doresponse==2 && (response==ResRING || 
 			response == ResCONNECT || response==ResNOCARRIER)) return;
