@@ -503,7 +503,7 @@ doconforming:
 			Segs.val[cs]=new_cs;
 			break;
 		default:
-			E_Exit("Task switch CS Type %d",cs_desc.Type());
+			E_Exit("Task switch CS Type %lu", cs_desc.Type());
 		}
 	}
 	CPU_SetSegGeneral(es,new_es);
