@@ -3,7 +3,7 @@ on: push
 jobs:
 
   build_macos_xcode_clang:
-    name: Clang 10 (Xcode)
+    name: Clang 10 LTO (Xcode)
     runs-on: macOS-10.14
     steps:
       - uses: actions/checkout@v1
@@ -15,7 +15,6 @@ jobs:
         run:  ./scripts/build.sh --compiler clang --lto
       - name: Summarize warnings
         run:  python3 ./scripts/count-warnings.py build.log
-
 
 #  build_macos_brew_gcc9:
 #    name: GCC 9 (Homebrew)

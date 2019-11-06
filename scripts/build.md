@@ -131,8 +131,10 @@ options to the **list-build-dependencies.sh** and **build.sh** scripts:
 After building, your `dosbox` or `dosbox.exe` binary will reside inside `./dosbox-staging/src/`.
 
 Build flags you might be interested in:
-* `--release debug`, to build a binary containing debug symbols (instead of **fast** or **small**)
 * `--lto`, perform optimizations across the entire object space instead of per-file (Only available on Mac and Linux)
+* `--release debug`, to build a binary containing debug symbols
+* `--release sanitize`, to build a binary instrumented with memory and undefined behavior checking (Only available on Mac and Linux)
+    * You adjust the sanitizers behavior at runtime with `ASAN_OPTIONS`, described here: https://github.com/google/sanitizers/wiki/AddressSanitizerFlags
 
 The above flags are othogonal and thus can be mixed-and-matched as desired.
 

@@ -31,7 +31,7 @@ function usage() {
 	local script
 	script=$(basename "${INVOCATION}")
 	echo "Usage: ${script} [-b 32|64] [-c gcc|clang] [-f linux|macos|msys2] [-d] [-l]"
-	echo "                 [-p /custom/bin] [-u #] [-r fast|small|debug] [-s /your/src] [-t #]"
+	echo "                 [-p /custom/bin] [-u #] [-r fast|small|debug|sanitize] [-s /your/src] [-t #]"
 	echo ""
 	echo "  FLAG                     Description                                           Default"
 	echo "  -----------------------  ----------------------------------------------------- -------"
@@ -42,7 +42,7 @@ function usage() {
 	echo "  -l, --lto               Perform Link-Time-Optimizations (LTO)                  [$(print_var "${LTO}")]"
 	echo "  -p, --bin-path          Prepend PATH with the one provided to find executables [$(print_var "${BIN_PATH}")]"
 	echo "  -u, --compiler-version  Customize the compiler postfix (ie: 9 -> gcc-9)        [$(print_var "${COMPILER_VERSION}")]"
-	echo "  -r, --release           Build a fast, small, or debug release                  [$(print_var "${RELEASE}")]"
+	echo "  -r, --release           Build a fast, small, debug, or sanitize release        [$(print_var "${RELEASE}")]"
 	echo "  -s, --src-path          Enter a different source directory before building     [$(print_var "${SRC_PATH}")]"
 	echo "  -t, --threads           Override the number of threads with which to compile   [$(print_var "${THREADS}")]"
 	echo "  -v, --version           Print the version of this script                       [$(print_var "${SCRIPT_VERSION}")]"
@@ -308,17 +308,42 @@ function compiler_version() {
 function release_flags() {
 	uses compiler_type
 
+	# Speed-optimization flags
 	if [[ "${RELEASE}" == "fast" ]]; then CFLAGS_ARRAY+=("-Ofast")
+
+	# Size-optimization flags
 	elif [[ "${RELEASE}" == "small" ]]; then
 		CFLAGS_ARRAY+=("-Os")
 		if [[ "${COMPILER}" == "gcc" ]]; then
 			CFLAGS_ARRAY+=("-ffunction-sections" "-fdata-sections")
-
 			# ld on MacOS doesn't understand --as-needed, so exclude it
 			uses system
 			if [[ "${SYSTEM}" != "macos" ]]; then LDFLAGS_ARRAY+=("-Wl,--as-needed"); fi
 		fi
-	elif [[ "${RELEASE}" == "debug" ]]; then CFLAGS_ARRAY+=("-g" "-O1")
+
+	# Debug or sanitize flags
+	elif [[ "${RELEASE}" == "debug" || "${RELEASE}" == "sanitize" ]]; then
+		CFLAGS_ARRAY+=("-g" "-O1" "-fno-omit-frame-pointer")
+
+		# Additional sanitize flags
+		if [[ "${RELEASE}" == "sanitize" ]]; then
+			uses system
+			# On Linux and OS X we can add sanitization checks
+			if [[ "${SYSTEM}" == "linux" || "${SYSTEM}" == "macos" ]]; then
+				SANITIZE_ARRAY=("-fsanitize=float-divide-by-zero" "-fsanitize=undefined")
+				if   [[ "${COMPILER}" == "gcc"   ]]; then SANITIZE_ARRAY+=("-fsanitize=address")
+				elif [[ "${COMPILER}" == "clang" ]]; then
+					if [[ "${SYSTEM}" == "linux" ]]; then
+						SANITIZE_ARRAY+=("-fsanitize=memory")
+						LIBS_ARRAY+=("-lubsan")
+					fi
+					SANITIZE_ARRAY+=("-fsanitize=integer" "-fsanitize-recover=all" "-fPIE")
+				fi
+				CFLAGS_ARRAY+=("${SANITIZE_ARRAY[@]}")
+				LDFLAGS_ARRAY+=("${SANITIZE_ARRAY[@]}")
+			fi
+		fi
+
 	else usage "The release type of ${RELEASE} is not allowed. Choose fast, small, or debug"
 	fi
 }
@@ -330,6 +355,18 @@ function threads() {
 	fi
 	# make presents a descriptive error message in the scenario where the user overrides
 	# THREADS with an illegal value: the '-j' option requires a positive integer argument.
+}
+
+function query_compiler_version() {
+	uses compiler_type
+	uses compiler_version
+	if [[ "${COMPILER_VERSION}" == "unset" ]]; then
+		if   [[ "${COMPILER}" == "gcc"   ]]; then 2>&1 gcc -v
+		elif [[ "${COMPILER}" == "clang" ]]; then clang --version
+		fi | grep -Po '(?<=version )[^.]+'
+	else
+		echo "${COMPILER_VERSION:0:1}"
+	fi
 }
 
 function fdo_flags() {
@@ -346,11 +383,7 @@ function fdo_flags() {
 
 	if [[ "${COMPILER}" == "gcc" ]]; then
 		# Don't let GCC 6.x and under use both FDO and LTO
-		uses compiler_version
-		if [[ ( "${COMPILER_VERSION}" == "unset"
-		        && "$(2>&1 gcc -v | grep -Po '(?<=version )[^.]+')" -lt "7"
-		        || "${COMPILER_VERSION}" -lt "7" )
-		      && "${LTO}" == "true" ]]; then
+		if [[ "${LTO}" == "true" && "$(query_compiler_version)" -lt "7" ]]; then
 			error "GCC versions 6 and under cannot handle FDO and LTO simultaneously; please change one or more these."
 		fi
 		CFLAGS_ARRAY+=("-fauto-profile=${fdo_file}")
@@ -492,8 +525,8 @@ function build() {
 }
 
 function strip_binary() {
-	if [[ "${RELEASE}" == "debug" ]]; then
-		echo "[skipping strip] Debug symbols will be left in the binary because it's a debug release"
+	if [[ "${RELEASE}" == "debug" || "${RELEASE}" == "sanitize" ]]; then
+		echo "[skipping strip] Debug symbols will be left in the binary because it's a ${RELEASE} release"
 	else
 		uses bin_path
 		uses executable

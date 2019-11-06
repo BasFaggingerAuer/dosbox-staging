@@ -99,23 +99,26 @@ function list_packages() {
 	case "$1" in
 
 		apt)
+			# Package repo: https://packages.ubuntu.com/
 			# Apt separates GCC into the gcc and g++ pacakges, the latter which depends on the prior.
 			# Therefore, we provide g++ in-place of gcc.
 			VERSION_DELIM="-"
 			if [[ "${COMPILER}" == "gcc" ]]; then
 				COMPILER="g++"
 			fi
-			PACKAGES=(libtool build-essential autoconf-archive libsdl1.2-dev libsdl-net1.2-dev libopusfile-dev libspeexdsp-dev)
+			PACKAGES=(libubsan[0-9] libasan[0-9] xvfb libtool build-essential autoconf-archive libsdl1.2-dev libsdl-net1.2-dev libopusfile-dev libspeexdsp-dev)
 			;;
 
 		dnf)
+			# Package repo: https://apps.fedoraproject.org/packages/
 			VERSION_DELIM="-"
-			PACKAGES=(libtool autoconf-archive SDL SDL_net-devel opusfile-devel speexdsp-devel)
+			PACKAGES=(libubsan libasan libasan-static xvfb libtool autoconf-archive SDL SDL_net-devel opusfile-devel speexdsp-devel)
 			;;
 
 		pacman)
+			# Package repo: https://www.archlinux.org/packages/
 			# Arch offers 32-bit versions of SDL and speexDSP (but not others)
-			PACKAGES=(libtool autoconf-archive sdl_net opusfile)
+			PACKAGES=(libubsan libasan xvfb libtool autoconf-archive sdl_net opusfile)
 			if [[ "${BITS}" == 32 ]]; then
 				PACKAGES+=(lib32-sdl lib32-speexdsp)
 			else
@@ -124,12 +127,13 @@ function list_packages() {
 			;;
 
 		zypper)
+			# Package repo: https://pkgs.org/
 			# OpenSUSE offers 32-bit versions of SDL, SDL_net, and speexDSP (but not others)
-			PACKAGES=(devel_basis libtool autoconf-archive opusfile)
+			PACKAGES=(devel_basis xvfb libtool autoconf-archive opusfile)
 			if [[ "${BITS}" == 32 ]]; then
-				PACKAGES+=(libSDL-devel-32bit libSDL_net-devel-32bit libspeexdsp1-32bit)
+				PACKAGES+=(libubsan{0,1}-32bit libasan{4,5}-32bit libSDL-devel-32bit libSDL_net-devel-32bit libspeexdsp1-32bit)
 			else
-				PACKAGES+=(SDL SDL_net speexdsp)
+				PACKAGES+=(libubsan{0,1} libasan{4,5} SDL SDL_net speexdsp)
 			fi
 			;;
 
@@ -146,6 +150,7 @@ function list_packages() {
 			;;
 
 		brew)
+			# Package repo: https://formulae.brew.sh/
 			# If the user wants Clang, we knock it out because it's provided provided out-of-the-box
 			VERSION_DELIM="@"
 			if [[ "${COMPILER}" == "clang" ]]; then
@@ -155,10 +160,12 @@ function list_packages() {
 			;;
 
 		macports)
-			PACKAGES=(coreutils autogen automake autoconf autoconf-archive pkgconfig libpng libsdl libsdl_net opusfile speexDSP)
+			# Package repo: https://www.macports.org/ports.php?by=name
+			PACKAGES=(coreutils autogen autoconf autoconf-archive automake pkgconfig libpng libsdl libsdl_net opusfile speexDSP)
 			;;
 
 		msys2)
+			# Package repo: https://packages.msys2.org/base
 			# MSYS2 only supports the current latest releases of Clang and GCC, so we disable version customization
 			COMPILER_VERSION=""
 			local pkg_type
@@ -174,6 +181,7 @@ function list_packages() {
 			;;
 
 		vcpkg)
+			# Package repo: https://repology.org/projects/?inrepo=vcpkg
 			# VCPKG doesn't provide Clang or GCC, so we knock out the compiler and just give packages
 			COMPILER=""
 			PACKAGES=(libpng sdl1 sdl1-net opusfile speexdsp)
