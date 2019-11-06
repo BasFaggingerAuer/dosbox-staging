@@ -186,7 +186,7 @@ function list_packages() {
 	if [[ -n "${COMPILER_VERSION}" && -n "${COMPILER}" ]]; then
 		COMPILER+="${VERSION_DELIM}${COMPILER_VERSION}"
 	fi
-	echo "${COMPILER} ${PACKAGES[*]}"
+	echo "${PACKAGES[*]}"
 }
 
 function main() {

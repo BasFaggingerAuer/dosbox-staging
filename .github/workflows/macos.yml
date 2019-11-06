@@ -1,6 +1,7 @@
 name: macOS builds
 on: push
 jobs:
+
   build_macos_xcode_clang:
     name: Clang 10 (Xcode)
     runs-on: macOS-10.14
@@ -9,7 +10,7 @@ jobs:
       - name: Log environment
         run:  ./scripts/log-env.sh
       - name: Install dependencies
-        run:  brew install $(./scripts/list-build-dependencies.sh -p brew --compiler clang)
+        run:  brew install $(./scripts/list-build-dependencies.sh -p brew)
       - name: Build
         run:  ./scripts/build.sh --compiler clang --lto
       - name: Summarize warnings
@@ -24,7 +25,7 @@ jobs:
 #      - name: Log environment
 #        run:  ./scripts/log-env.sh
 #      - name: Install dependencies
-#        run:  brew install $(./scripts/list-build-dependencies.sh -p brew --compiler-version 9)
+#        run:  brew install gcc@9 $(./scripts/list-build-dependencies.sh -p brew)
 #      - name: Build
 #        run:  echo ./scripts/build.sh --compiler-version 9 --lto
 #      - name: Summarize warnings
@@ -50,7 +51,7 @@ jobs:
 #        run: |
 #          PATH="/opt/local/sbin:/opt/local/bin:${PATH}"
 #          sudo port -q selfupdate || true
-#          sudo port -q install $(./scripts/list-build-dependencies.sh -p macports --compiler-version 9)
+#          sudo port -q install gcc-9 $(./scripts/list-build-dependencies.sh -p macports)
 #
 #      - name: Build
 #        run:  echo ./scripts/build.sh --compiler-version mp-9 --bin-path /opt/local/bin
