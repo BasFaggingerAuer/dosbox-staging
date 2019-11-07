@@ -133,10 +133,12 @@ After building, your `dosbox` or `dosbox.exe` binary will reside inside `./dosbo
 Build flags you might be interested in:
 * `--lto`, perform optimizations across the entire object space instead of per-file (Only available on Mac and Linux)
 * `--release debug`, to build a binary containing debug symbols
-* `--release sanitize`, to build a binary instrumented with memory and undefined behavior checking (Only available on Mac and Linux)
-    * You adjust the sanitizers behavior at runtime with `ASAN_OPTIONS`, described here: https://github.com/google/sanitizers/wiki/AddressSanitizerFlags
-
-The above flags are othogonal and thus can be mixed-and-matched as desired.
+    * You can run the resulting binary in the GNU debugger: `gdb /path/to/dosbox`, followed by `start mygame.bat`
+* `--release profile`, to generate performance statistics
+    * Instructions are provided after the build completes, which describe how to generate and process the profiling data
+* `--release sanitize`, to build a binary that performs dynamic code-analysis at runtime (Linux and macOS)
+    * Run your binary like normal and it will generate output describing problematic behavior and memory operations
+    * You can adjust the sanitizers behavior at runtime with `ASAN_OPTIONS`, described here: https://github.com/google/sanitizers/wiki/AddressSanitizerFlags
 
 If you want to run multiple back-to-back builds from the same directory with different settings then
 add the `--clean` flag to ensure previous objects and binaries are removed.
