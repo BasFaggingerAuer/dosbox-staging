@@ -31,7 +31,8 @@ function usage() {
 	local script
 	script=$(basename "${INVOCATION}")
 	echo "Usage: ${script} [-b 32|64] [-c gcc|clang] [-f linux|macos|msys2] [-d] [-l]"
-	echo "                 [-p /custom/bin] [-u #] [-r fast|small|debug|sanitize] [-s /your/src] [-t #]"
+	echo "                 [-p /custom/bin] [-u #] [-r fast|small|debug|sanitize|profile]"
+    echo "                 [-s /your/src] [-t #]"
 	echo ""
 	echo "  FLAG                     Description                                           Default"
 	echo "  -----------------------  ----------------------------------------------------- -------"
@@ -42,7 +43,7 @@ function usage() {
 	echo "  -l, --lto               Perform Link-Time-Optimizations (LTO)                  [$(print_var "${LTO}")]"
 	echo "  -p, --bin-path          Prepend PATH with the one provided to find executables [$(print_var "${BIN_PATH}")]"
 	echo "  -u, --compiler-version  Customize the compiler postfix (ie: 9 -> gcc-9)        [$(print_var "${COMPILER_VERSION}")]"
-	echo "  -r, --release           Build a fast, small, debug, or sanitize release        [$(print_var "${RELEASE}")]"
+	echo "  -r, --release           One of: fast, small, debug, sanitize, or profile       [$(print_var "${RELEASE}")]"
 	echo "  -s, --src-path          Enter a different source directory before building     [$(print_var "${SRC_PATH}")]"
 	echo "  -t, --threads           Override the number of threads with which to compile   [$(print_var "${THREADS}")]"
 	echo "  -v, --version           Print the version of this script                       [$(print_var "${SCRIPT_VERSION}")]"
@@ -344,7 +345,17 @@ function release_flags() {
 			fi
 		fi
 
-	else usage "The release type of ${RELEASE} is not allowed. Choose fast, small, or debug"
+	# Profile instrumentation flags
+	elif [[ "${RELEASE}" == "profile" ]]; then
+		CFLAGS_ARRAY+=("-g" "-O0" )
+		if   [[ "${COMPILER}" == "gcc"   ]]; then
+			CFLAGS_ARRAY+=("-pg")
+		elif [[ "${COMPILER}" == "clang" ]]; then
+			CFLAGS_ARRAY+=("-fprofile-instr-generate" "-fcoverage-mapping")
+			LDFLAGS_ARRAY+=("-fprofile-instr-generate")
+		fi
+
+	else usage "The release type of ${RELEASE} is not one of: fast, small, debug, sanitize, or profile"
 	fi
 }
 
@@ -525,12 +536,12 @@ function build() {
 }
 
 function strip_binary() {
-	if [[ "${RELEASE}" == "debug" || "${RELEASE}" == "sanitize" ]]; then
-		echo "[skipping strip] Debug symbols will be left in the binary because it's a ${RELEASE} release"
-	else
+	if [[ "${RELEASE}" == "fast" || "${RELEASE}" == "small" ]]; then
 		uses bin_path
 		uses executable
 		strip "${EXECUTABLE}"
+	else
+		echo "[skipping strip] symbols will be left in the binary"
 	fi
 }
 
@@ -539,9 +550,38 @@ function show_binary() {
 	uses system
 	uses executable
 
+	echo ""
+	echo "Dependencies"
+	echo "------------"
 	if [[ "$SYSTEM" == "macos" ]]; then otool -L "${EXECUTABLE}"
 	else ldd "${EXECUTABLE}"; fi
+
+	echo ""
+	echo "Binary"
+	echo "------"
 	ls -1lh "${EXECUTABLE}"
+}
+
+function show_tips() {
+	if [[ "${RELEASE}" == "profile" ]]; then
+		uses compiler_type
+		uses executable
+		echo ""
+		echo "Profiling Instructions"
+		echo "----------------------"
+		if [[ "${COMPILER}" == "gcc" ]]; then
+			echo "  1. Run DOSBox like normal; it will write gmon.out in the current directory"
+			echo "  2. Print the call statistics: gprof ${EXECUTABLE} gmon.out"
+
+		elif [[ "${COMPILER}" == "clang" ]]; then
+			local ver="$(query_compiler_version)"
+			echo "  1. export LLVM_PROFILE_FILE=./llvm.prof"
+			echo "  2. Run DOSBox like like normal; it will write llvm.prof in the current directory"
+			echo "  3. Convert the prof file to a merge file: llvm-profdata-${ver} merge -output=llvm.merge -instr llvm.prof"
+			echo "  4. Print the call statistics: llvm-profdata-${ver} show -all-functions -counts -ic-targets  llvm.merge"
+		fi
+		echo ""
+	fi
 }
 
 function main() {
@@ -549,6 +589,7 @@ function main() {
 	build
 	strip_binary
 	show_binary
+	show_tips
 }
 
 main "$@"
