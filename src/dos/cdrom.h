@@ -38,11 +38,6 @@
 
 #define RAW_SECTOR_SIZE		2352
 #define COOKED_SECTOR_SIZE	2048
-#define AUDIO_DECODE_BUFFER_SIZE 16512
-// 16512 is 16384 + 128, which enough for four 4KB decode audio chunks plus 128 bytes extra,
-// which accomodate the leftovers from typically callbacks, which also helps minimize
-// most of the time. This size is also an even multiple of 8-bytes, allowing the compiler to
-// use "large-D" SIMD instructions on it.
 
 enum { CDROM_USE_SDL, CDROM_USE_ASPI, CDROM_USE_IOCTL_DIO, CDROM_USE_IOCTL_DX, CDROM_USE_IOCTL_MCI };
 
@@ -161,7 +156,7 @@ private:
 	public:
 		virtual bool    read(Bit8u *buffer, int seek, int count) = 0;
 		virtual bool    seek(Bit32u offset) = 0;
-		virtual Bit16u  decode(Bit8u *buffer) = 0;
+		virtual Bit32u  decode(Bit16s *buffer, Bit32u desired_track_frames) = 0;
 		virtual Bit16u  getEndian() = 0;
 		virtual Bit32u  getRate() = 0;
 		virtual Bit8u   getChannels() = 0;
@@ -175,7 +170,7 @@ private:
 		BinaryFile      (const char *filename, bool &error);
 		bool            read(Bit8u *buffer, int seek, int count);
 		bool            seek(Bit32u offset);
-		Bit16u          decode(Bit8u *buffer);
+		Bit32u          decode(Bit16s *buffer, Bit32u desired_track_frames);
 		Bit16u          getEndian();
 		Bit32u          getRate() { return 44100; }
 		Bit8u           getChannels() { return 2; }
@@ -191,7 +186,7 @@ private:
 		AudioFile       (const char *filename, bool &error);
 		bool            read(Bit8u *buffer, int seek, int count) { return false; }
 		bool            seek(Bit32u offset);
-		Bit16u          decode(Bit8u *buffer);
+		Bit32u          decode(Bit16s *buffer, Bit32u desired_track_frames);
 		Bit16u          getEndian();
 		Bit32u          getRate();
 		Bit8u           getChannels();
@@ -237,23 +232,21 @@ static	CDROM_Interface_Image* images[26];
 
 private:
 	// player
-static	void	CDAudioCallBack(Bitu len);
+static	void	CDAudioCallBack(Bitu desired_frames);
 	int	GetTrack(int sector);
 
 static  struct imagePlayer {
-		Bit8u                 buffer[AUDIO_DECODE_BUFFER_SIZE];
+		Bit16s                buffer[MIXER_BUFSIZE * 2]; // 2 channels (max)
 		TCtrl                 ctrlData;
 		TrackFile             *trackFile;
 		MixerChannel          *channel;
 		CDROM_Interface_Image *cd;
-		void                  (MixerChannel::*addSamples) (Bitu, const Bit16s*);
-		Bit32u                startFrame;
-		Bit32u                currFrame;
-		Bit32u                numFrames;
-		Bit32u                playbackTotal;
-		Bit32s                playbackRemaining;
-		Bit16u                bufferPos;
-		Bit16u                bufferConsumed;
+		void                  (MixerChannel::*addFrames) (Bitu, const Bit16s*);
+		Bit32u                startRedbookFrame;
+		Bit32u                currRedbookFrame;
+		Bit32u                desiredRedbookFrames;
+		Bit32u                desiredTrackFrames;
+		int                   remainingTrackFrames;
 		bool                  isPlaying;
 		bool                  isPaused;
 		bool                  ctrlUsed;
@@ -407,7 +400,7 @@ private:
 		SDL_mutex		*mutex;
 		Bit8u   buffer[8192];
 		int     bufLen;
-		int     currFrame;	
+		int     currFrame;
 		int     targetFrame;
 		bool    isPlaying;
 		bool    isPaused;

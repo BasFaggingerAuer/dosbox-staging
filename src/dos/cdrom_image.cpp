@@ -46,6 +46,7 @@ using namespace std;
 
 #define MAX_LINE_LENGTH 512
 #define MAX_FILENAME_LENGTH 256
+#define MAX_BYTES_PER_FRAME 4
 
 #ifdef DEBUG
 char* get_time() {
@@ -96,12 +97,8 @@ int CDROM_Interface_Image::BinaryFile::getLength()
 
 Bit16u CDROM_Interface_Image::BinaryFile::getEndian()
 {
-	// Image files are read into native-endian byte-order
-#if defined(WORDS_BIGENDIAN)
-	return AUDIO_S16MSB;
-#else
+	// Image files are always little endian
 	return AUDIO_S16LSB;
-#endif
 }
 
 
@@ -111,10 +108,10 @@ bool CDROM_Interface_Image::BinaryFile::seek(Bit32u offset)
 	return !file->fail();
 }
 
-Bit16u CDROM_Interface_Image::BinaryFile::decode(Bit8u *buffer)
+Bit32u CDROM_Interface_Image::BinaryFile::decode(Bit16s *buffer, Bit32u desired_track_frames)
 {
-	file->read((char*)buffer, chunkSize);
-	return (Bit16u) file->gcount();
+	file->read((char*)buffer, desired_track_frames * MAX_BYTES_PER_FRAME);
+	return (Bit32u) file->gcount() / MAX_BYTES_PER_FRAME;
 }
 
 CDROM_Interface_Image::AudioFile::AudioFile(const char *filename, bool &error)
@@ -122,7 +119,7 @@ CDROM_Interface_Image::AudioFile::AudioFile(const char *filename, bool &error)
 {
 	// Use the audio file's actual sample rate and number of channels as opposed to overriding
 	Sound_AudioInfo desired = {AUDIO_S16, 0, 0};
-	sample = Sound_NewSampleFromFile(filename, &desired, chunkSize);
+	sample = Sound_NewSampleFromFile(filename, &desired);
 	if (sample) {
 		error = false;
 		std::string filename_only(filename);
@@ -166,11 +163,9 @@ bool CDROM_Interface_Image::AudioFile::seek(Bit32u offset)
 	return result;
 }
 
-Bit16u CDROM_Interface_Image::AudioFile::decode(Bit8u *buffer)
+Bit32u CDROM_Interface_Image::AudioFile::decode(Bit16s *buffer, Bit32u desired_track_frames)
 {
-	const Bit16u bytes = Sound_Decode(sample);
-	memcpy(buffer, sample->buffer, bytes);
-	return bytes;
+	return Sound_Decode_Direct(sample, (void*)buffer, desired_track_frames);
 }
 
 Bit16u CDROM_Interface_Image::AudioFile::getEndian()
@@ -213,27 +208,24 @@ int CDROM_Interface_Image::AudioFile::getLength()
 int CDROM_Interface_Image::refCount = 0;
 CDROM_Interface_Image* CDROM_Interface_Image::images[26] = {};
 CDROM_Interface_Image::imagePlayer CDROM_Interface_Image::player = {
-	{0},     // buffer[]
-	{0},     // ctrlData struct
-	nullptr, // TrackFile*
-	nullptr, // MixerChannel*
-	nullptr, // CDROM_Interface_Image*
-	nullptr, // addSamples
-	0,       // startFrame
-	0,       // currFrame
-	0,       // numFrames
-	0,       // playbackTotal
-	0,       // playbackRemaining
-	0,       // bufferPos
-	0,       // bufferConsumed
-	false,   // isPlaying
-	false,   // isPaused
-	false    // ctrlUsed
+	{0},        // buffer[]
+	{{0}, {0}}, // TCtrl struct
+	nullptr,    // TrackFile*
+	nullptr,    // MixerChannel*
+	nullptr,    // CDROM_Interface_Image*
+	nullptr,    // addFrames
+	0,          // startRedbookFrame
+	0,          // currRedbookFrame
+	0,          // desiredRedbookFrames
+	0,          // desiredTrackFrames
+	0,          // remainingTrackFrames
+	false,      // isPlaying
+	false,      // isPaused
+	false       // ctrlUsed
 };
-
-
+	
 CDROM_Interface_Image::CDROM_Interface_Image(Bit8u subUnit)
-                      :subUnit(subUnit)
+		      :subUnit(subUnit)
 {
 	images[subUnit] = this;
 	if (refCount == 0) {
@@ -242,8 +234,7 @@ CDROM_Interface_Image::CDROM_Interface_Image(Bit8u subUnit)
 			player.channel = MIXER_AddChannel(&CDAudioCallBack, 0, "CDAUDIO");
 			player.channel->Enable(false);
 #ifdef DEBUG
-			LOG_MSG("CDROM: Initialized with %d-byte circular buffer",
-			        AUDIO_DECODE_BUFFER_SIZE);
+			LOG_MSG("CDROM: Initialized the CDAUDIO mixer channel");
 #endif
 		}
 	}
@@ -343,15 +334,15 @@ bool CDROM_Interface_Image::GetAudioTrackInfo(int track, TMSF& start, unsigned c
 bool CDROM_Interface_Image::GetAudioSub(unsigned char& attr, unsigned char& track,
                                         unsigned char& index, TMSF& relPos, TMSF& absPos)
 {
-	int cur_track = GetTrack(player.currFrame);
+	int cur_track = GetTrack(player.currRedbookFrame);
 	if (cur_track < 1) {
 		return false;
 	}
 	track = (unsigned char)cur_track;
 	attr = tracks[track - 1].attr;
 	index = 1;
-	frames_to_msf(player.currFrame + 150, &absPos.min, &absPos.sec, &absPos.fr);
-	frames_to_msf(player.currFrame - tracks[track - 1].start, &relPos.min, &relPos.sec, &relPos.fr);
+	frames_to_msf(player.currRedbookFrame + 150, &absPos.min, &absPos.sec, &absPos.fr);
+	frames_to_msf(player.currRedbookFrame - tracks[track - 1].start, &relPos.min, &relPos.sec, &relPos.fr);
 
 #ifdef DEBUG
 	LOG_MSG("%s CDROM: GetAudioSub attr=%u, track=%u, index=%u",
@@ -362,14 +353,14 @@ bool CDROM_Interface_Image::GetAudioSub(unsigned char& attr, unsigned char& trac
 
 	LOG_MSG("%s CDROM: GetAudioSub absoute  offset (%d), MSF=%d:%d:%d",
             get_time(),
-	        player.currFrame + 150,
+	        player.currRedbookFrame + 150,
 	        absPos.min,
 	        absPos.sec,
 	        absPos.fr);
 
 	LOG_MSG("%s CDROM: GetAudioSub relative offset (%d), MSF=%d:%d:%d",
             get_time(),
-	        player.currFrame - tracks[track - 1].start + 150,
+	        player.currRedbookFrame - tracks[track - 1].start + 150,
 	        relPos.min,
 	        relPos.sec,
 	        relPos.fr);
@@ -443,55 +434,48 @@ bool CDROM_Interface_Image::PlayAudioSector(unsigned long start, unsigned long l
 
 		// only initialize the player elements if our track is playable
 		if (is_playable) {
-			const Bit8u channels = trackFile->getChannels();
-			const Bit32u rate = trackFile->getRate();
+			const Bit8u track_channels = trackFile->getChannels();
+			const Bit32u track_rate = trackFile->getRate();
 
 			player.cd = this;
 			player.trackFile = trackFile;
-			player.startFrame = start;
-			player.currFrame = start;
-			player.numFrames = len;
-			player.bufferPos = 0;
-			player.bufferConsumed = 0;
+			player.startRedbookFrame = start;
+			player.currRedbookFrame = start;
+			player.desiredRedbookFrames = len;
 			player.isPlaying = true;
 			player.isPaused = false;
 
-
-#if defined(WORDS_BIGENDIAN)
-			if (trackFile->getEndian() != AUDIO_S16SYS)
-#else
-			if (trackFile->getEndian() == AUDIO_S16SYS)
-#endif
-				player.addSamples = channels ==  2  ? &MixerChannel::AddSamples_s16 \
-				                                    : &MixerChannel::AddSamples_m16;
-			else
-				player.addSamples = channels ==  2  ? &MixerChannel::AddSamples_s16_nonnative \
-				                                    : &MixerChannel::AddSamples_m16_nonnative;
-
-			const float bytesPerMs = (float) (rate * channels * 2 / 1000.0);
-			player.playbackTotal = lround(len * tracks[track].sectorSize * bytesPerMs / 176.4);
-			player.playbackRemaining = player.playbackTotal;
+			if (trackFile->getEndian() == AUDIO_S16SYS) {
+				player.addFrames = track_channels ==  2  ? &MixerChannel::AddSamples_s16 \
+				                                         : &MixerChannel::AddSamples_m16;
+			} else {
+				player.addFrames = track_channels ==  2  ? &MixerChannel::AddSamples_s16_nonnative \
+				                                         : &MixerChannel::AddSamples_m16_nonnative;
+			}
+			const double desired_playback_duration_s = player.desiredRedbookFrames / 75.0; // 75 Redbook-frames per second
+			player.desiredTrackFrames = track_rate * desired_playback_duration_s; // Track-frames per second: ie, 44100, 48000
+			player.remainingTrackFrames = player.desiredTrackFrames; // remainingTrackFrames is decremented during playback
 
 #ifdef DEBUG
 			LOG_MSG("%s CDROM: Playing track %d at %.1f KHz "
 			        "%d-channel at start sector %lu (%.1f minute-mark), seek %u "
-			        "(skip=%d,dstart=%d,secsize=%d), for %lu sectors (%.1f seconds)",
+			        "(skip=%d,dstart=%d,secsize=%d), for %u Redbook frames (%.1f seconds)",
 			        get_time(),
 			        track,
-			        rate/1000.0,
-			        channels,
+			        track_rate/1000.0,
+			        track_channels,
 			        start,
 			        offset * (1/10584000.0),
 			        offset,
 			        tracks[track].skip,
 			        tracks[track].start,
 			        tracks[track].sectorSize,
-			        len,
-			        player.playbackRemaining / (1000 * bytesPerMs));
+			        player.desiredRedbookFrames,
+			        desired_playback_duration_s);
 #endif
 
 			// start the channel!
-			player.channel->SetFreq(rate);
+			player.channel->SetFreq(track_rate);
 			player.channel->Enable(true);
 		}
 	}
@@ -535,6 +519,17 @@ void CDROM_Interface_Image::ChannelControl(TCtrl ctrl)
 {
 	player.ctrlUsed = (ctrl.out[0]!=0 || ctrl.out[1]!=1 || ctrl.vol[0]<0xfe || ctrl.vol[1]<0xfe);
 	player.ctrlData = ctrl;
+
+	// Apply the volume to our Mixer Channel
+	if (player.ctrlUsed && player.channel != NULL) {
+		const float leftVolumePercent = static_cast<float>(player.ctrlData.vol[0] / 255.0);
+		const float rightVolumePercent = static_cast<float>(player.ctrlData.vol[1] / 255.0);
+		player.channel->SetVolume(leftVolumePercent, rightVolumePercent);
+#ifdef DEBUG
+		LOG_MSG("%s CDROM: Game set the left and right volume to %3.0f%% and %3.0f%%, respectively",
+		        get_time(), leftVolumePercent * 100, rightVolumePercent * 100);
+#endif
+	}
 }
 
 bool CDROM_Interface_Image::ReadSectors(PhysPt buffer, bool raw, unsigned long sector, unsigned long num)
@@ -600,127 +595,31 @@ bool CDROM_Interface_Image::ReadSector(Bit8u *buffer, bool raw, unsigned long se
 	return tracks[track].file->read(buffer, seek, length);
 }
 
-void CDROM_Interface_Image::CDAudioCallBack(Bitu len)
+
+void CDROM_Interface_Image::CDAudioCallBack(Bitu desired_track_frames)
 {
-	// Our member object "playbackRemaining" holds the
-	// exact number of stream-bytes we need to play before meeting the
-	// DOS program's desired playback duration in sectors. We simply
-	// decrement this counter each callback until we're done.
-	if (len == 0 || !player.isPlaying || player.isPaused) {
-		return;
-	}
+	if (desired_track_frames > 0
+	    && player.isPlaying
+	    && !player.isPaused) {
 
-	// determine bytes per request (16-bit samples)
-	const Bit8u channels = player.trackFile->getChannels();
-	const Bit8u bytes_per_request = channels * 2;
-	int total_requested = len * bytes_per_request;
+		const Bit32u decoded_frames = player.trackFile->decode(player.buffer, desired_track_frames);
 
-	while (total_requested > 0) {
-		int requested = total_requested;
+		// uses either the stereo or mono and native or nonnative AddSamples call assigned during construction
+		(player.channel->*player.addFrames)(decoded_frames, player.buffer);
 
-		// Every now and then the callback wants a big number of bytes,
-		// which can exceed our circular buffer. In these cases we need
-		// read through as many iteration of our circular buffer as needed.
-		if (total_requested > AUDIO_DECODE_BUFFER_SIZE) {
-			requested = AUDIO_DECODE_BUFFER_SIZE;
-			total_requested -= AUDIO_DECODE_BUFFER_SIZE;
+		// Games can query the current Redbook MSF frame-position, so we keep that up-to-date here.
+		// We scale the total number of frames by the percent complete, which
+		// avoids having to keep track of the equivlent number of Redbook frames
+		// versus our track (PCM) frames.
+		//
+		player.remainingTrackFrames -= decoded_frames;
+		const double percentPlayed = (player.desiredTrackFrames - player.remainingTrackFrames) / player.desiredTrackFrames;
+		player.currRedbookFrame += (Bit32u) ceil(player.desiredRedbookFrames * percentPlayed);
+
+		// Stop the audio when we have no remaining frames to play
+		if (player.remainingTrackFrames <= 0) {
+			player.cd->StopAudio();
 		}
-		else {
-			total_requested = 0;
-		}
-
-		// Three scenarios in order of probabilty:
-		//
-		// 1. Consume: If our decoded circular buffer is sufficiently filled to
-		//             satify the Mixer's requested size, then feed the Mixer with
-		//             the requested number of bytes.
-		//
-		// 2. Wrap:    If we've decoded and consumed to edge of our buffer, then
-		//             we need to wrap any remaining decoded-but-not-consumed
-		//             samples back around to the front of the buffer.
-		//
-		// 3. Fill:    When our circular buffer is too depleted to satisfy the
-		//             Mixer's requested size, then ask the decoder for more data;
-		//             to either enough to completely fill our buffer or whatever
-		//             is left to satisfy the remaining samples in this requested
-		//             playback sequence (the Mixer is unaware of how much audio
-		//             xwe need to play; instead we decide when to cutoff the mixer).
-		//
-		while (true) {
-
-			// 1. Consume
-			if (player.bufferPos - player.bufferConsumed >= requested) {
-				if (player.ctrlUsed) {
-					for (Bit8u i=0; i < channels; i++) {
-						Bit16s  sample;
-						Bit16s* samples = (Bit16s*)&player.buffer[player.bufferConsumed];
-						for (int pos = 0; pos < requested / bytes_per_request; pos++) {
-#if defined(WORDS_BIGENDIAN)
-							sample = (Bit16s)host_readw((HostPt) & samples[pos * 2 + player.ctrlData.out[i]]);
-#else
-							sample = samples[pos * 2 + player.ctrlData.out[i]];
-#endif
-							samples[pos * 2 + i] = (Bit16s)(sample * player.ctrlData.vol[i] / 255.0);
-						}
-					}
-				}
-				// uses either the stereo or mono and native or nonnative AddSamples
-				// call assigned during construction
-				(player.channel->*player.addSamples)(requested / bytes_per_request,
-				                                     (Bit16s*)(player.buffer + player.bufferConsumed) );
-				player.bufferConsumed += requested;
-				player.playbackRemaining -= requested;
-
-				// Games can query the current Red Book MSF frame-position, so we keep that up-to-date here.
-				// We scale the final number of frames by the percent complete, which
-				// avoids having to keep track of the equivlent number of Red Book frames
-				// read (which would involve coverting the compressed streams data-rate into
-				// CDROM Red Book rate, which is more work than simply scaling).
-				//
-				const double playbackPercentSoFar = (player.playbackTotal - player.playbackRemaining) / player.playbackTotal;
-				player.currFrame = player.startFrame + (Bit32u) ceil(player.numFrames * playbackPercentSoFar);
-				break;
-			}
-
-			// 2. Wrap
-			else {
-				memcpy(player.buffer,
-					   player.buffer + player.bufferConsumed,
-					   player.bufferPos - player.bufferConsumed);
-				player.bufferPos -= player.bufferConsumed;
-				player.bufferConsumed = 0;
-			}
-
-			// 3. Fill
-			const Bit16u chunkSize = player.trackFile->chunkSize;
-			while(AUDIO_DECODE_BUFFER_SIZE - player.bufferPos >= chunkSize &&
-			      (player.bufferPos - player.bufferConsumed < player.playbackRemaining ||
-				   player.bufferPos - player.bufferConsumed < requested) ) {
-
-				const Bit16u decoded = player.trackFile->decode(player.buffer + player.bufferPos);
-				player.bufferPos += decoded;
-
-				// if we decoded less than expected, which could be due to EOF or if the CUE file specified
-				// an exact "INDEX 01 MIN:SEC:FRAMES" value but the compressed track is ever-so-slightly less than
-				// that specified, then simply pad with zeros.
-				const Bit16s underDecode = chunkSize - decoded;
-				if (underDecode > 0) {
-
-#ifdef DEBUG
-					LOG_MSG("%s CDROM: Underdecoded by %d. Feeding mixer with zeros.",
-					         get_time(),
-					         underDecode);
-#endif
-
-					memset(player.buffer + player.bufferPos, 0, underDecode);
-					player.bufferPos += underDecode;
-				}
-			} // end of fill-while
-		} // end of decode and fill loop
-	} // end while total_requested
-
-	if (player.playbackRemaining <= 0) {
-		player.cd->StopAudio();
 	}
 }
 
