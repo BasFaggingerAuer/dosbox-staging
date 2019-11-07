@@ -78,6 +78,12 @@
 extern "C" {
 #endif
 
+/*
+#ifdef __cplusplus
+extern "C" {
+#endif
+*/
+
 ///////////   THREAD SAFETY
 
 // Individual stb_vorbis* handles are not thread-safe; you cannot decode from
