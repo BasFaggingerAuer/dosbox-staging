@@ -32,14 +32,13 @@
 	//DUNNO Keyon in 4op, switch to 2op without keyoff.
 */
 
+#include "dbopl.h"
 
-
+#include <cstddef>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-#include "dosbox.h"
-#include "dbopl.h"
-
+#include <type_traits>
 
 #ifndef PI
 #define PI 3.14159265358979323846
@@ -1430,7 +1429,6 @@ void InitTables( void ) {
 		TremoloTable[TREMOLO_TABLE - 1 - i] = val;
 	}
 	//Create a table with offsets of the channels from the start of the chip
-	DBOPL::Chip* chip = 0;
 	for ( Bitu i = 0; i < 32; i++ ) {
 		Bitu index = i & 0xf;
 		if ( index >= 9 ) {
@@ -1444,8 +1442,11 @@ void InitTables( void ) {
 		//Add back the bits for highest ones
 		if ( i >= 16 )
 			index += 9;
-		Bitu blah = reinterpret_cast<Bitu>( &(chip->chan[ index ]) );
-		ChanOffsetTable[i] = blah;
+
+		static_assert(std::is_standard_layout<Chip>::value,
+		              "struct Chip is not a standard layout type");
+		const size_t offset = offsetof(Chip, chan) + index * sizeof(*Chip::chan);
+		ChanOffsetTable[i] = static_cast<Bit16u>(offset);
 	}
 	//Same for operators
 	for ( Bitu i = 0; i < 64; i++ ) {
@@ -1458,9 +1459,11 @@ void InitTables( void ) {
 		if ( chNum >= 12 )
 			chNum += 16 - 12;
 		Bitu opNum = ( i % 8 ) / 3;
-		DBOPL::Channel* chan = 0;
-		Bitu blah = reinterpret_cast<Bitu>( &(chan->op[opNum]) );
-		OpOffsetTable[i] = ChanOffsetTable[ chNum ] + blah;
+
+		static_assert(std::is_standard_layout<Channel>::value,
+		              "struct Channel is not a standard layout type");
+		const size_t offset = offsetof(Channel, op) + opNum * sizeof(*Channel::op);
+		OpOffsetTable[i] = ChanOffsetTable[chNum] + static_cast<Bit16u>(offset);
 	}
 #if 0
 	//Stupid checks if table's are correct
