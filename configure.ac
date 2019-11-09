@@ -26,28 +26,17 @@ if test x$host = xi386-pc-os2-emx ; then
     LDFLAGS="$LDFLAGS -Zomf -Zmt"
 fi
 
+dnl Check for GLEW
+PKG_CHECK_MODULES(GLEW, [glew >= 1.5.4])
+
 dnl Check for SDL
-SDL_VERSION=1.2.0
-AM_PATH_SDL($SDL_VERSION,
+SDL_VERSION=2.0.0
+AM_PATH_SDL2($SDL_VERSION,
             :,
 	    AC_MSG_ERROR([*** SDL version $SDL_VERSION not found!])
 )
 LIBS="$LIBS $SDL_LIBS"
 CPPFLAGS="$CPPFLAGS $SDL_CFLAGS"
-
-dnl Check if SDL is 1.2.x (1.3 not supported)
-AC_MSG_CHECKING([SDL version only being 1.2.X])
-AC_COMPILE_IFELSE([AC_LANG_SOURCE([
-#include "SDL.h"
-void blah(){
-#if SDL_MINOR_VERSION != 2
-#error "Only SDL 1.2 supported"
-#endif
-;
-}
-])],AC_MSG_RESULT([yes]),[
- AC_MSG_RESULT([no]) 
- AC_MSG_ERROR([Only libSDL 1.2.X supported])])
 
 dnl Checks for header files.
 
