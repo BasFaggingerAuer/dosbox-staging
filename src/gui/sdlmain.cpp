@@ -938,52 +938,39 @@ void GFX_Events() {
     }
 #endif
     while (SDL_PollEvent(&event)) {
-#if SDL_XORG_FIX
-        // Special code for broken SDL with Xorg 1.20.1, where pairs of inputfocus gain and loss events are generated
-        // when locking the mouse in windowed mode.
-        if (event.type == SDL_ACTIVEEVENT && event.active.state == SDL_APPINPUTFOCUS && event.active.gain == 0) {
-            SDL_Event test; //Check if the next event would undo this one.
-            if (SDL_PeepEvents(&test,1,SDL_PEEKEVENT,SDL_ACTIVEEVENTMASK) == 1 && test.active.state == SDL_APPINPUTFOCUS && test.active.gain == 1) {
-                // Skip both events.
-                SDL_PeepEvents(&test,1,SDL_GETEVENT,SDL_ACTIVEEVENTMASK);
-                continue;
-            }
-        }
-#endif
-
+        //TODO: Check for Xorg 1.20.1 mouse grabbing issues.
         switch (event.type) {
-        case SDL_ACTIVEEVENT:
-            if (event.active.state & SDL_APPINPUTFOCUS) {
-                if (event.active.gain) {
+        case SDL_WINDOWEVENT:
+            if (event.window.event == SDL_WINDOWEVENT_FOCUS_GAINED) {
 #ifdef WIN32
-                    if (!sdl.desktop.fullscreen) sdl.focus_ticks = GetTicks();
+                if (!sdl.desktop.fullscreen) sdl.focus_ticks = GetTicks();
 #endif
-                    if (sdl.desktop.fullscreen && !sdl.mouse.locked)
-                        GFX_CaptureMouse();
-                    SetPriority(sdl.priority.focus);
-                    CPU_Disable_SkipAutoAdjust();
-                } else {
-                    if (sdl.mouse.locked) {
+                if (sdl.desktop.fullscreen && !sdl.mouse.locked)
+                    GFX_CaptureMouse();
+                SetPriority(sdl.priority.focus);
+                CPU_Disable_SkipAutoAdjust();
+            }
+            if (event.window.event == SDL_WINDOWEVENT_FOCUS_LOST) {
+                if (sdl.mouse.locked) {
 #ifdef WIN32
-                        if (sdl.desktop.fullscreen) {
-                            VGA_KillDrawing();
-                            sdl.desktop.fullscreen=false;
-                            GFX_ResetScreen();
-                        }
-#endif
-                        GFX_CaptureMouse();
+                    if (sdl.desktop.fullscreen) {
+                        VGA_KillDrawing();
+                        sdl.desktop.fullscreen=false;
+                        GFX_ResetScreen();
                     }
-                    SetPriority(sdl.priority.nofocus);
-                    GFX_LosingFocus();
-                    CPU_Enable_SkipAutoAdjust();
+#endif
+                    GFX_CaptureMouse();
                 }
+                SetPriority(sdl.priority.nofocus);
+                GFX_LosingFocus();
+                CPU_Enable_SkipAutoAdjust();
             }
 
             /* Non-focus priority is set to pause; check to see if we've lost window or input focus
              * i.e. has the window been minimised or made inactive?
              */
             if (sdl.priority.nofocus == PRIORITY_LEVEL_PAUSE) {
-                if ((event.active.state & (SDL_APPINPUTFOCUS | SDL_APPACTIVE)) && (!event.active.gain)) {
+                if (event.window.event == SDL_WINDOWEVENT_FOCUS_LOST) {
                     /* Window has lost focus, pause the emulator.
                      * This is similar to what PauseDOSBox() does, but the exit criteria is different.
                      * Instead of waiting for the user to hit Alt-Break, we wait for the window to
@@ -1005,13 +992,11 @@ void GFX_Events() {
 
                         switch (ev.type) {
                         case SDL_QUIT: throw(0); break; // a bit redundant at linux at least as the active events gets before the quit event.
-                        case SDL_ACTIVEEVENT:     // wait until we get window focus back
-                            if (ev.active.state & (SDL_APPINPUTFOCUS | SDL_APPACTIVE)) {
+                        case SDL_WINDOWEVENT:     // wait until we get window focus back
+                            if (event.window.event == SDL_WINDOWEVENT_FOCUS_GAINED) {
                                 // We've got focus back, so unpause and break out of the loop
-                                if (ev.active.gain) {
-                                    paused = false;
-                                    GFX_SetTitle(-1,-1,false);
-                                }
+                                paused = false;
+                                GFX_SetTitle(-1,-1,false);
 
                                 /* Now poke a "release ALT" command into the keyboard buffer
                                  * we have to do this, otherwise ALT will 'stick' and cause
@@ -1033,14 +1018,8 @@ void GFX_Events() {
         case SDL_MOUSEBUTTONUP:
             HandleMouseButton(&event.button);
             break;
-        case SDL_VIDEORESIZE:
-//            HandleVideoResize(&event.resize);
-            break;
         case SDL_QUIT:
             throw(0);
-            break;
-        case SDL_VIDEOEXPOSE:
-            if (sdl.draw.callback) sdl.draw.callback( GFX_CallBackRedraw );
             break;
 #ifdef WIN32
         case SDL_KEYDOWN:
@@ -1243,7 +1222,7 @@ static void eraseconfigfile() {
     FILE* f = fopen("dosbox.conf","r");
     if(f) {
         fclose(f);
-        show_warning("Warning: dosbox.conf exists in current working directory.\nThis will override the configuration file at runtime.\n");
+        LOG_MSG("Warning: dosbox.conf exists in current working directory.\nThis will override the configuration file at runtime.\n");
     }
     std::string path,file;
     Cross::GetPlatformConfigDir(path);
@@ -1260,8 +1239,8 @@ static void erasemapperfile() {
     FILE* g = fopen("dosbox.conf","r");
     if(g) {
         fclose(g);
-        show_warning("Warning: dosbox.conf exists in current working directory.\nKeymapping might not be properly reset.\n"
-                     "Please reset configuration as well and delete the dosbox.conf.\n");
+        LOG_MSG("Warning: dosbox.conf exists in current working directory.\nKeymapping might not be properly reset.\n"
+                "Please reset configuration as well and delete the dosbox.conf.\n");
     }
 
     std::string path,file=MAPPERFILE;
@@ -1502,12 +1481,12 @@ int main(int argc, char* argv[]) {
     }
     catch(...){
         //Force visible mouse to end user. Somehow this sometimes doesn't happen
-        SDL_WM_GrabInput(SDL_GRAB_OFF);
+        SDL_SetWindowGrab(sdl.window, SDL_FALSE);
         SDL_ShowCursor(SDL_ENABLE);
         throw;//dunno what happened. rethrow for sdl to catch
     }
     //Force visible mouse to end user. Somehow this sometimes doesn't happen
-    SDL_WM_GrabInput(SDL_GRAB_OFF);
+    SDL_SetWindowGrab(sdl.window, SDL_FALSE);
     SDL_ShowCursor(SDL_ENABLE);
 
     GFX_Destroy();

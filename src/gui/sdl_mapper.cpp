@@ -306,7 +306,7 @@ static Bit8u scancode_map[MAX_SDLKEYS];
 #define Z SDLK_UNKNOWN
 
 #if defined (MACOSX)
-static SDLKey sdlkey_map[]={
+static SDL_Keycode sdlkey_map[]={
 	/* Main block printables */
 	/*00-05*/ SDLK_a, SDLK_s, SDLK_d, SDLK_f, SDLK_h, SDLK_g,
 	/*06-0B*/ SDLK_z, SDLK_x, SDLK_c, SDLK_v, SDLK_WORLD_0, SDLK_b,
@@ -330,7 +330,7 @@ static SDLKey sdlkey_map[]={
 	/* Keypad (KP_EQUALS not supported, NUMLOCK used on what is CLEAR
 	 * in Mac OS X) */
 	/*41-46*/ SDLK_KP_PERIOD, Z, SDLK_KP_MULTIPLY, Z, SDLK_KP_PLUS, Z,
-	/*47-4A*/ SDLK_NUMLOCK /*==SDLK_CLEAR*/, Z, Z, Z,
+	/*47-4A*/ SDLK_NUMLOCKCLEAR /*==SDLK_CLEAR*/, Z, Z, Z,
 	/*4B-4D*/ SDLK_KP_DIVIDE, SDLK_KP_ENTER, Z,
 	/*4E-51*/ SDLK_KP_MINUS, Z, Z, SDLK_KP_EQUALS,
 	/*52-57*/ SDLK_KP0, SDLK_KP1, SDLK_KP2, SDLK_KP3, SDLK_KP4, SDLK_KP5, 
@@ -342,8 +342,8 @@ static SDLKey sdlkey_map[]={
 	 * PRINT[SCREEN], F15 => SCROLLOCK, F16 => PAUSE, HELP => INSERT) */
 	/*60-64*/ SDLK_F5, SDLK_F6, SDLK_F7, SDLK_F3, SDLK_F8,
 	/*65-6A*/ SDLK_F9, Z, SDLK_F11, Z, SDLK_F13, SDLK_PAUSE /*==SDLK_F16*/,
-	/*6B-70*/ SDLK_PRINT /*==SDLK_F14*/, Z, SDLK_F10, Z, SDLK_F12, Z,
-	/*71-72*/ SDLK_SCROLLOCK /*==SDLK_F15*/, SDLK_INSERT /*==SDLK_HELP*/, 
+	/*6B-70*/ SDLK_PRINTSCREEN /*==SDLK_F14*/, Z, SDLK_F10, Z, SDLK_F12, Z,
+	/*71-72*/ SDLK_SCROLLLOCK /*==SDLK_F15*/, SDLK_INSERT /*==SDLK_HELP*/, 
 	/*73-77*/ SDLK_HOME, SDLK_PAGEUP, SDLK_DELETE, SDLK_F4, SDLK_END,
 	/*78-7C*/ SDLK_F2, SDLK_PAGEDOWN, SDLK_F1, SDLK_LEFT, SDLK_RIGHT,
 	/*7D-7E*/ SDLK_DOWN, SDLK_UP,
@@ -363,7 +363,7 @@ typedef char assert_right_size [MAX_SCANCODES == (sizeof(sdlkey_map)/sizeof(sdlk
 #else // !MACOSX
 
 #define MAX_SCANCODES 212
-static SDLKey sdlkey_map[MAX_SCANCODES]={SDLK_UNKNOWN,SDLK_ESCAPE,
+static SDL_Keycode sdlkey_map[MAX_SCANCODES]={SDLK_UNKNOWN,SDLK_ESCAPE,
 	SDLK_1,SDLK_2,SDLK_3,SDLK_4,SDLK_5,SDLK_6,SDLK_7,SDLK_8,SDLK_9,SDLK_0,
 	/* 0x0c: */
 	SDLK_MINUS,SDLK_EQUALS,SDLK_BACKSPACE,SDLK_TAB,
@@ -377,9 +377,9 @@ static SDLKey sdlkey_map[MAX_SCANCODES]={SDLK_UNKNOWN,SDLK_ESCAPE,
 	SDLK_LALT,SDLK_SPACE,SDLK_CAPSLOCK,
 	SDLK_F1,SDLK_F2,SDLK_F3,SDLK_F4,SDLK_F5,SDLK_F6,SDLK_F7,SDLK_F8,SDLK_F9,SDLK_F10,
 	/* 0x45: */
-	SDLK_NUMLOCK,SDLK_SCROLLOCK,
-	SDLK_KP7,SDLK_KP8,SDLK_KP9,SDLK_KP_MINUS,SDLK_KP4,SDLK_KP5,SDLK_KP6,SDLK_KP_PLUS,
-	SDLK_KP1,SDLK_KP2,SDLK_KP3,SDLK_KP0,SDLK_KP_PERIOD,
+	SDLK_NUMLOCKCLEAR,SDLK_SCROLLLOCK,
+	SDLK_KP_7,SDLK_KP_8,SDLK_KP_9,SDLK_KP_MINUS,SDLK_KP_4,SDLK_KP_5,SDLK_KP_6,SDLK_KP_PLUS,
+	SDLK_KP_1,SDLK_KP_2,SDLK_KP_3,SDLK_KP_0,SDLK_KP_PERIOD,
 	SDLK_UNKNOWN,SDLK_UNKNOWN,
 	SDLK_LESS,SDLK_F11,SDLK_F12,
 	Z,Z,Z,Z,Z,Z,Z,Z,Z,Z,Z,Z,Z,Z,Z,Z,Z,Z,Z,Z,Z,Z,Z,Z,Z,Z,Z,Z,Z,Z,Z,
@@ -394,14 +394,14 @@ static SDLKey sdlkey_map[MAX_SCANCODES]={SDLK_UNKNOWN,SDLK_ESCAPE,
 #undef Z
 
 
-SDLKey MapSDLCode(Bitu skey) {
+SDL_Keycode MapSDLCode(Bitu skey) {
 	if (usescancodes) {
 		if (skey<MAX_SCANCODES) return sdlkey_map[skey];
 		else return SDLK_UNKNOWN;
-	} else return (SDLKey)skey;
+	} else return (SDL_Keycode)skey;
 }
 
-Bitu GetKeyCode(SDL_keysym keysym) {
+Bitu GetKeyCode(SDL_Keysym keysym) {
 	if (usescancodes) {
 		Bitu key=(Bitu)keysym.scancode;
 		if (key==0
@@ -457,7 +457,7 @@ class CKeyBindGroup;
 
 class CKeyBind : public CBind {
 public:
-	CKeyBind(CBindList * _list,SDLKey _key) : CBind(_list) {
+	CKeyBind(CBindList * _list,SDL_Keycode _key) : CBind(_list) {
 		key = _key;
 	}
 	void BindName(char * buf) {
@@ -467,7 +467,7 @@ public:
 		sprintf(buf,"key %d",MapSDLCode((Bitu)key));
 	}
 public:
-	SDLKey key;
+	SDL_Keycode key;
 };
 
 class CKeyBindGroup : public  CBindGroup {
@@ -487,12 +487,12 @@ public:
 			if (code<MAX_SDLKEYS) code=scancode_map[code];
 			else code=0;
 		}
-		CBind * bind=CreateKeyBind((SDLKey)code);
+		CBind * bind=CreateKeyBind((SDL_Keycode)code);
 		return bind;
 	}
 	CBind * CreateEventBind(SDL_Event * event) {
 		if (event->type!=SDL_KEYDOWN) return 0;
-		return CreateKeyBind((SDLKey)GetKeyCode(event->key.keysym));
+		return CreateKeyBind((SDL_Keycode)GetKeyCode(event->key.keysym));
 	};
 	bool CheckEvent(SDL_Event * event) {
 		if (event->type!=SDL_KEYDOWN && event->type!=SDL_KEYUP) return false;
@@ -503,7 +503,7 @@ public:
 		else DeactivateBindList(&lists[key],true);
 		return 0;
 	}
-	CBind * CreateKeyBind(SDLKey _key) {
+	CBind * CreateKeyBind(SDL_Keycode _key) {
 		if (!usescancodes) assert((Bitu)_key<keys);
 		return new CKeyBind(&lists[(Bitu)_key],_key);
 	}
@@ -1576,13 +1576,13 @@ public:
 			key=SDLK_KP_MINUS;
 			break;
 		case MK_scrolllock:
-			key=SDLK_SCROLLOCK;
+			key=SDLK_SCROLLLOCK;
 			break;
 		case MK_pause:
 			key=SDLK_PAUSE;
 			break;
 		case MK_printscreen:
-			key=SDLK_PRINT;
+			key=SDLK_PRINTSCREEN;
 			break;
 		}
 		sprintf(buf,"%s \"key %d%s%s%s\"",
@@ -1662,16 +1662,6 @@ static void SetActiveEvent(CEvent * event) {
 		} else SetActiveBind(0);
 		bind_but.add->Enable(true);
 	}
-}
-
-static void DrawButtons(void) {
-	SDL_FillRect(mapper.surface,0,CLR_BLACK);
-	SDL_LockSurface(mapper.surface);
-	for (CButton_it but_it = buttons.begin();but_it!=buttons.end();but_it++) {
-		(*but_it)->Draw();
-	}
-	SDL_UnlockSurface(mapper.surface);
-	SDL_Flip(mapper.surface);
 }
 
 static CKeyEvent * AddKeyButtonEvent(Bitu x,Bitu y,Bitu dx,Bitu dy,char const * const title,char const * const entry,KBD_KEYS key) {
@@ -2032,14 +2022,14 @@ static struct {
 	{"quote", SDLK_QUOTE},	{"backslash",SDLK_BACKSLASH},	{"lshift",SDLK_LSHIFT},
 	{"rshift",SDLK_RSHIFT},	{"lalt",SDLK_LALT},			{"ralt",SDLK_RALT},
 	{"lctrl",SDLK_LCTRL},	{"rctrl",SDLK_RCTRL},		{"comma",SDLK_COMMA},
-	{"period",SDLK_PERIOD},	{"slash",SDLK_SLASH},		{"printscreen",SDLK_PRINT},
-	{"scrolllock",SDLK_SCROLLOCK},	{"pause",SDLK_PAUSE},		{"pagedown",SDLK_PAGEDOWN},
+	{"period",SDLK_PERIOD},	{"slash",SDLK_SLASH},		{"printscreen",SDLK_PRINTSCREEN},
+	{"scrolllock",SDLK_SCROLLLOCK},	{"pause",SDLK_PAUSE},		{"pagedown",SDLK_PAGEDOWN},
 	{"pageup",SDLK_PAGEUP},	{"insert",SDLK_INSERT},		{"home",SDLK_HOME},
 	{"delete",SDLK_DELETE},	{"end",SDLK_END},			{"up",SDLK_UP},
 	{"left",SDLK_LEFT},		{"down",SDLK_DOWN},			{"right",SDLK_RIGHT},
-	{"kp_0",SDLK_KP0},	{"kp_1",SDLK_KP1},	{"kp_2",SDLK_KP2},	{"kp_3",SDLK_KP3},
-	{"kp_4",SDLK_KP4},	{"kp_5",SDLK_KP5},	{"kp_6",SDLK_KP6},	{"kp_7",SDLK_KP7},
-	{"kp_8",SDLK_KP8},	{"kp_9",SDLK_KP9},	{"numlock",SDLK_NUMLOCK},
+	{"kp_0",SDLK_KP_0},	{"kp_1",SDLK_KP_1},	{"kp_2",SDLK_KP_2},	{"kp_3",SDLK_KP_3},
+	{"kp_4",SDLK_KP_4},	{"kp_5",SDLK_KP_5},	{"kp_6",SDLK_KP_6},	{"kp_7",SDLK_KP_7},
+	{"kp_8",SDLK_KP_8},	{"kp_9",SDLK_KP_9},	{"numlock",SDLK_NUMLOCKCLEAR},
 	{"kp_divide",SDLK_KP_DIVIDE},	{"kp_multiply",SDLK_KP_MULTIPLY},
 	{"kp_minus",SDLK_KP_MINUS},		{"kp_plus",SDLK_KP_PLUS},
 	{"kp_period",SDLK_KP_PERIOD},	{"kp_enter",SDLK_KP_ENTER},
@@ -2370,10 +2360,10 @@ void MAPPER_StartUp(Section * sec) {
 		sdlkey_map[0x5A]=SDLK_KP_ENTER;
 		sdlkey_map[0x5B]=SDLK_RCTRL;
 		sdlkey_map[0x5F]=SDLK_PAUSE;
-//		sdlkey_map[0x00]=SDLK_PRINT;
+//		sdlkey_map[0x00]=SDLK_PRINTSCREEN;
 		sdlkey_map[0x5E]=SDLK_RALT;
-		sdlkey_map[0x40]=SDLK_KP5;
-		sdlkey_map[0x41]=SDLK_KP6;
+		sdlkey_map[0x40]=SDLK_KP_5;
+		sdlkey_map[0x41]=SDLK_KP_6;
 #elif !defined (WIN32) /* => Linux & BSDs */
 		bool evdev_input = false;
 #ifdef SDL_VIDEO_DRIVER_X11
@@ -2413,7 +2403,7 @@ void MAPPER_StartUp(Section * sec) {
 			sdlkey_map[0x60]=SDLK_KP_ENTER;
 			sdlkey_map[0x61]=SDLK_RCTRL;
 			sdlkey_map[0x77]=SDLK_PAUSE;
-			sdlkey_map[0x63]=SDLK_PRINT;
+			sdlkey_map[0x63]=SDLK_PRINTSCREEN;
 			sdlkey_map[0x64]=SDLK_RALT;
 		} else {
 			sdlkey_map[0x5a]=SDLK_UP;
@@ -2430,7 +2420,7 @@ void MAPPER_StartUp(Section * sec) {
 			sdlkey_map[0x64]=SDLK_KP_ENTER;
 			sdlkey_map[0x65]=SDLK_RCTRL;
 			sdlkey_map[0x66]=SDLK_PAUSE;
-			sdlkey_map[0x67]=SDLK_PRINT;
+			sdlkey_map[0x67]=SDLK_PRINTSCREEN;
 			sdlkey_map[0x69]=SDLK_RALT;
 		}
 #else
@@ -2448,14 +2438,14 @@ void MAPPER_StartUp(Section * sec) {
 		sdlkey_map[0x9c]=SDLK_KP_ENTER;
 		sdlkey_map[0x9d]=SDLK_RCTRL;
 		sdlkey_map[0xc5]=SDLK_PAUSE;
-		sdlkey_map[0xb7]=SDLK_PRINT;
+		sdlkey_map[0xb7]=SDLK_PRINTSCREEN;
 		sdlkey_map[0xb8]=SDLK_RALT;
 #endif
 
 		Bitu i;
 		for (i=0; i<MAX_SDLKEYS; i++) scancode_map[i]=0;
 		for (i=0; i<MAX_SCANCODES; i++) {
-			SDLKey key=sdlkey_map[i];
+			SDL_Keycode key=sdlkey_map[i];
 			if (key<MAX_SDLKEYS) scancode_map[key]=(Bit8u)i;
 		}
 	}
