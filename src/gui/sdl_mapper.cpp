@@ -2309,51 +2309,6 @@ void MAPPER_Run(bool pressed) {
 	MAPPER_RunInternal();
 }
 
-SDL_Surface* SDL_SetVideoMode_Wrap(int width,int height,int bpp,Bit32u flags);
-
-void MAPPER_RunInternal() {
-	int cursor = SDL_ShowCursor(SDL_QUERY);
-	SDL_ShowCursor(SDL_ENABLE);
-	bool mousetoggle=false;
-	if(mouselocked) {
-		mousetoggle=true;
-		GFX_CaptureMouse();
-	}
-
-	/* Be sure that there is no update in progress */
-	GFX_EndUpdate( 0 );
-	mapper.surface=SDL_SetVideoMode_Wrap(640,480,8,0);
-	if (mapper.surface == NULL) E_Exit("Could not initialize video mode for mapper: %s",SDL_GetError());
-
-	/* Set some palette entries */
-	SDL_SetPalette(mapper.surface, SDL_LOGPAL|SDL_PHYSPAL, map_pal, 0, 5);
-	if (last_clicked) {
-		last_clicked->SetColor(CLR_WHITE);
-		last_clicked=NULL;
-	}
-	/* Go in the event loop */
-	mapper.exit=false;	
-	mapper.redraw=true;
-	SetActiveEvent(0);
-#if defined (REDUCE_JOYSTICK_POLLING)
-	SDL_JoystickEventState(SDL_ENABLE);
-#endif
-	while (!mapper.exit) {
-		if (mapper.redraw) {
-			mapper.redraw=false;		
-			DrawButtons();
-		}
-		BIND_MappingEvents();
-		SDL_Delay(1);
-	}
-#if defined (REDUCE_JOYSTICK_POLLING)
-	SDL_JoystickEventState(SDL_DISABLE);
-#endif
-	if(mousetoggle) GFX_CaptureMouse();
-	SDL_ShowCursor(cursor);
-	GFX_ResetScreen();
-}
-
 void MAPPER_Init(void) {
 	InitializeJoysticks();
 	CreateLayout();
