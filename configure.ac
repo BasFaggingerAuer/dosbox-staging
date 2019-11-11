@@ -28,6 +28,8 @@ fi
 
 dnl Check for GLEW
 PKG_CHECK_MODULES(GLEW, [glew >= 1.5.4])
+LIBS="$LIBS $GLEW_LIBS"
+CPPFLAGS="$CPPFLAGS $GLEW_CFLAGS"
 
 dnl Check for SDL
 SDL_VERSION=2.0.0
@@ -389,9 +391,9 @@ AH_TEMPLATE(C_IPX,[Define to 1 to enable IPX over Internet networking, requires 
 AC_CHECK_HEADER(SDL_net.h,have_sdl_net_h=yes,)
 
 if test x$host = xi386-pc-os2-emx ; then
-  AC_MSG_CHECKING(for SDLNet_Init in SDL_net);
+  AC_MSG_CHECKING(for SDLNet_Init in SDL2_net);
   LIBS_BACKUP=$LIBS;
-  LIBS="$LIBS -lSDL_Net";
+  LIBS="$LIBS -lSDL2_Net";
   AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <SDL_Net.h>]],[[
 	SDLNet_Init ();
   ]])], [AC_MSG_RESULT(yes); have_sdl_net_lib=yes], AC_MSG_RESULT(no))
@@ -400,7 +402,7 @@ else
 AC_CHECK_LIB(SDL_net, SDLNet_Init, have_sdl_net_lib=yes, , )
 fi
 if test x$have_sdl_net_lib = xyes -a x$have_sdl_net_h = xyes ; then
-   LIBS="$LIBS -lSDL_net"
+   LIBS="$LIBS -lSDL2_net"
    AC_DEFINE(C_MODEM,1)
    AC_DEFINE(C_IPX,1)
 else 

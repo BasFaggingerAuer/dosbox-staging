@@ -416,7 +416,7 @@ void GFX_Create(Bitu width, Bitu height) {
     glGenTextures(1, &sdl.opengl.texture);
     
     glBindTexture(GL_TEXTURE_2D, sdl.opengl.texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, tex_size, tex_size, 0, GL_BGRA, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, sdl.draw.width, sdl.draw.height, 0, GL_BGRA, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
     
@@ -430,10 +430,32 @@ void GFX_Create(Bitu width, Bitu height) {
     
     //Compile shaders.
     //TODO: Add configurable shaders.
-    sdl.opengl.vertex_shader = GFX_CompileShader("#version 140\nin vec2 tex_vertex; in vec2 vertex; out vec2 tex_uv; void main() { tex_uv = tex_vertex; gl_Position = vec4(vertex.xy, 0.0f, 0.0f, 1.0f); }", GL_VERTEX_SHADER);
-    sdl.opengl.fragment_shader = GFX_CompileShader("#version 140\nuniform sampler2D dosbox; in vec2 tex_uv; out vec4 fragment; void main() { fragment = vec4(texture(dos_screen, tex_uv).xyz, 1.0f); }", GL_FRAGMENT_SHADER);
+    LOG_MSG("SDL:OPENGL: Compiling vertex shader...\n");
+    sdl.opengl.vertex_shader = GFX_CompileShader("#version 140\n"
+                                                 "\n"
+                                                 "in vec2 tex_vertex;\n"
+                                                 "in vec2 vertex;\n"
+                                                 "\n"
+                                                 "out vec2 tex_uv;\n"
+                                                 "\n"
+                                                 "void main() {\n"
+                                                 "    tex_uv = tex_vertex;\n"
+                                                 "    gl_Position = vec4(vertex.xy, 0.0f, 1.0f);\n"
+                                                 "}\n", GL_VERTEX_SHADER);
+    LOG_MSG("SDL:OPENGL: Compiling fragment shader...\n");
+    sdl.opengl.fragment_shader = GFX_CompileShader("#version 140\n"
+                                                   "\n"
+                                                   "uniform sampler2D dosbox;\n"
+                                                   "\n"
+                                                   "in vec2 tex_uv;\n"
+                                                   "out vec4 fragment;\n"
+                                                   "\n"
+                                                   "void main() {\n"
+                                                   "    fragment = vec4(texture(dosbox, tex_uv).xyz, 1.0f);\n"
+                                                   "}\n", GL_FRAGMENT_SHADER);
     
     //Link shaders in program.
+    LOG_MSG("SDL:OPENGL: Linking OpenGL program...\n");
     sdl.opengl.program = glCreateProgram();
     glAttachShader(sdl.opengl.program, sdl.opengl.vertex_shader);
     glAttachShader(sdl.opengl.program, sdl.opengl.fragment_shader);
@@ -462,10 +484,10 @@ void GFX_Create(Bitu width, Bitu height) {
     glUseProgram(0);
     
     //Create vertex buffer object for the screen quad.
-    const GLfloat vertex_data[] = {0.0f, 1.0f, -1.0f,  1.0f,
-                                   0.0f, 0.0f, -1.0f, -1.0f,
-                                   1.0f, 1.0f,  1.0f,  1.0f,
-                                   1.0f, 0.0f,  1.0f, -1.0f};
+    const GLfloat vertex_data[] = {0.0f, 0.0f, -1.0f,  1.0f,
+                                   0.0f, 1.0f, -1.0f, -1.0f,
+                                   1.0f, 0.0f,  1.0f,  1.0f,
+                                   1.0f, 1.0f,  1.0f, -1.0f};
     
     glGenBuffers(1, &sdl.opengl.vertex_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, sdl.opengl.vertex_buffer);
