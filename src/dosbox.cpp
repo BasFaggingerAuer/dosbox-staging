@@ -454,15 +454,7 @@ void DOSBOX_Init(void) {
 	                 "  to fill the screen entirely, depending on your hardware, a different scaler/fullresolution might work.");
 	Pstring = Pmulti->GetSection()->Add_string("type",Property::Changeable::Always,"normal2x");
 
-	const char *scalers[] = { 
-		"none", "normal2x", "normal3x",
-#if RENDER_USE_ADVANCED_SCALERS>2
-		"advmame2x", "advmame3x", "advinterp2x", "advinterp3x", "hq2x", "hq3x", "2xsai", "super2xsai", "supereagle",
-#endif
-#if RENDER_USE_ADVANCED_SCALERS>0
-		"tv2x", "tv3x", "rgb2x", "rgb3x", "scan2x", "scan3x",
-#endif
-		0 };
+	const char *scalers[] = { "normal", 0 };
 	Pstring->Set_values(scalers);
 
 	const char* force[] = { "", "forced", 0 };

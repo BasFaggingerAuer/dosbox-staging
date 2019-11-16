@@ -2064,9 +2064,125 @@ void MAPPER_Run(bool pressed) {
 	//MAPPER_RunInternal();
 }
 
+static void CreateLayout(void) {
+	Bitu i;
+	/* Create the buttons for the Keyboard */
+#define BW 28
+#define BH 20
+#define DX 5
+#define PX(_X_) ((_X_)*BW + DX)
+#define PY(_Y_) (10+(_Y_)*BH)
+	AddKeyButtonEvent(PX(0),PY(0),BW,BH,"ESC","esc",KBD_esc);
+	for (i=0;i<12;i++) AddKeyButtonEvent(PX(2+i),PY(0),BW,BH,combo_f[i].title,combo_f[i].entry,combo_f[i].key);
+	for (i=0;i<14;i++) AddKeyButtonEvent(PX(  i),PY(1),BW,BH,combo_1[i].title,combo_1[i].entry,combo_1[i].key);
+
+	AddKeyButtonEvent(PX(0),PY(2),BW*2,BH,"TAB","tab",KBD_tab);
+	for (i=0;i<12;i++) AddKeyButtonEvent(PX(2+i),PY(2),BW,BH,combo_2[i].title,combo_2[i].entry,combo_2[i].key);
+
+	AddKeyButtonEvent(PX(14),PY(2),BW*2,BH*2,"ENTER","enter",KBD_enter);
+	
+	caps_lock_event=AddKeyButtonEvent(PX(0),PY(3),BW*2,BH,"CLCK","capslock",KBD_capslock);
+	for (i=0;i<12;i++) AddKeyButtonEvent(PX(2+i),PY(3),BW,BH,combo_3[i].title,combo_3[i].entry,combo_3[i].key);
+
+	AddKeyButtonEvent(PX(0),PY(4),BW*2,BH,"SHIFT","lshift",KBD_leftshift);
+	for (i=0;i<11;i++) AddKeyButtonEvent(PX(2+i),PY(4),BW,BH,combo_4[i].title,combo_4[i].entry,combo_4[i].key);
+	AddKeyButtonEvent(PX(13),PY(4),BW*3,BH,"SHIFT","rshift",KBD_rightshift);
+
+	/* Last Row */
+	AddKeyButtonEvent(PX(0) ,PY(5),BW*2,BH,"CTRL","lctrl",KBD_leftctrl);
+	AddKeyButtonEvent(PX(3) ,PY(5),BW*2,BH,"ALT","lalt",KBD_leftalt);
+	AddKeyButtonEvent(PX(5) ,PY(5),BW*6,BH,"SPACE","space",KBD_space);
+	AddKeyButtonEvent(PX(11),PY(5),BW*2,BH,"ALT","ralt",KBD_rightalt);
+	AddKeyButtonEvent(PX(14),PY(5),BW*2,BH,"CTRL","rctrl",KBD_rightctrl);
+
+	/* Arrow Keys */
+#define XO 17
+#define YO 0
+
+	AddKeyButtonEvent(PX(XO+0),PY(YO),BW,BH,"PRT","printscreen",KBD_printscreen);
+	AddKeyButtonEvent(PX(XO+1),PY(YO),BW,BH,"SCL","scrolllock",KBD_scrolllock);
+	AddKeyButtonEvent(PX(XO+2),PY(YO),BW,BH,"PAU","pause",KBD_pause);
+	AddKeyButtonEvent(PX(XO+0),PY(YO+1),BW,BH,"INS","insert",KBD_insert);
+	AddKeyButtonEvent(PX(XO+1),PY(YO+1),BW,BH,"HOM","home",KBD_home);
+	AddKeyButtonEvent(PX(XO+2),PY(YO+1),BW,BH,"PUP","pageup",KBD_pageup);
+	AddKeyButtonEvent(PX(XO+0),PY(YO+2),BW,BH,"DEL","delete",KBD_delete);
+	AddKeyButtonEvent(PX(XO+1),PY(YO+2),BW,BH,"END","end",KBD_end);
+	AddKeyButtonEvent(PX(XO+2),PY(YO+2),BW,BH,"PDN","pagedown",KBD_pagedown);
+	AddKeyButtonEvent(PX(XO+1),PY(YO+4),BW,BH,"\x18","up",KBD_up);
+	AddKeyButtonEvent(PX(XO+0),PY(YO+5),BW,BH,"\x1B","left",KBD_left);
+	AddKeyButtonEvent(PX(XO+1),PY(YO+5),BW,BH,"\x19","down",KBD_down);
+	AddKeyButtonEvent(PX(XO+2),PY(YO+5),BW,BH,"\x1A","right",KBD_right);
+#undef XO
+#undef YO
+#define XO 0
+#define YO 7
+	/* Numeric KeyPad */
+	num_lock_event=AddKeyButtonEvent(PX(XO),PY(YO),BW,BH,"NUM","numlock",KBD_numlock);
+	AddKeyButtonEvent(PX(XO+1),PY(YO),BW,BH,"/","kp_divide",KBD_kpdivide);
+	AddKeyButtonEvent(PX(XO+2),PY(YO),BW,BH,"*","kp_multiply",KBD_kpmultiply);
+	AddKeyButtonEvent(PX(XO+3),PY(YO),BW,BH,"-","kp_minus",KBD_kpminus);
+	AddKeyButtonEvent(PX(XO+0),PY(YO+1),BW,BH,"7","kp_7",KBD_kp7);
+	AddKeyButtonEvent(PX(XO+1),PY(YO+1),BW,BH,"8","kp_8",KBD_kp8);
+	AddKeyButtonEvent(PX(XO+2),PY(YO+1),BW,BH,"9","kp_9",KBD_kp9);
+	AddKeyButtonEvent(PX(XO+3),PY(YO+1),BW,BH*2,"+","kp_plus",KBD_kpplus);
+	AddKeyButtonEvent(PX(XO),PY(YO+2),BW,BH,"4","kp_4",KBD_kp4);
+	AddKeyButtonEvent(PX(XO+1),PY(YO+2),BW,BH,"5","kp_5",KBD_kp5);
+	AddKeyButtonEvent(PX(XO+2),PY(YO+2),BW,BH,"6","kp_6",KBD_kp6);
+	AddKeyButtonEvent(PX(XO+0),PY(YO+3),BW,BH,"1","kp_1",KBD_kp1);
+	AddKeyButtonEvent(PX(XO+1),PY(YO+3),BW,BH,"2","kp_2",KBD_kp2);
+	AddKeyButtonEvent(PX(XO+2),PY(YO+3),BW,BH,"3","kp_3",KBD_kp3);
+	AddKeyButtonEvent(PX(XO+3),PY(YO+3),BW,BH*2,"ENT","kp_enter",KBD_kpenter);
+	AddKeyButtonEvent(PX(XO),PY(YO+4),BW*2,BH,"0","kp_0",KBD_kp0);
+	AddKeyButtonEvent(PX(XO+2),PY(YO+4),BW,BH,".","kp_period",KBD_kpperiod);
+#undef XO
+#undef YO
+#define XO 10
+#define YO 8
+   
+	/* The modifier buttons */
+	AddModButton(PX(0),PY(14),50,20,"Mod1",1);
+	AddModButton(PX(2),PY(14),50,20,"Mod2",2);
+	AddModButton(PX(4),PY(14),50,20,"Mod3",3);
+	/* Create Handler buttons */
+	Bitu xpos=3;Bitu ypos=11;
+	for (CHandlerEventVector_it hit=handlergroup.begin();hit!=handlergroup.end();hit++) {
+		new CEventButton(PX(xpos*3),PY(ypos),BW*3,BH,(*hit)->ButtonName(),(*hit));
+		xpos++;
+		if (xpos>6) {
+			xpos=3;ypos++;
+		}
+	}
+	/* Create some text buttons */
+//	new CTextButton(PX(6),0,124,20,"Keyboard Layout");
+//	new CTextButton(PX(17),0,124,20,"Joystick Layout");
+
+	bind_but.action=new CCaptionButton(180,350,0,0);
+
+	bind_but.event_title=new CCaptionButton(0,350,0,0);
+	bind_but.bind_title=new CCaptionButton(0,365,0,0);
+
+	/* Create binding support buttons */
+	
+	bind_but.mod1=new CCheckButton(20,410,60,20, "mod1",BC_Mod1);
+	bind_but.mod2=new CCheckButton(20,432,60,20, "mod2",BC_Mod2);
+	bind_but.mod3=new CCheckButton(20,454,60,20, "mod3",BC_Mod3);
+	bind_but.hold=new CCheckButton(100,410,60,20,"hold",BC_Hold);
+
+	bind_but.next=new CBindButton(250,400,50,20,"Next",BB_Next);
+
+	bind_but.add=new CBindButton(250,380,50,20,"Add",BB_Add);
+	bind_but.del=new CBindButton(300,380,50,20,"Del",BB_Del);
+
+	bind_but.save=new CBindButton(400,450,50,20,"Save",BB_Save);
+	bind_but.exit=new CBindButton(450,450,50,20,"Exit",BB_Exit);
+
+	bind_but.bind_title->Change("Bind Title");
+}
+
+
 void MAPPER_Init(void) {
 	InitializeJoysticks();
-	//CreateLayout();
+	CreateLayout();
 	CreateBindGroups();
 	if (!MAPPER_LoadBinds()) CreateDefaultBinds();
 	if (SDL_GetModState()&KMOD_CAPS) {

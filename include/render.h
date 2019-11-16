@@ -19,12 +19,6 @@
 #ifndef DOSBOX_RENDER_H
 #define DOSBOX_RENDER_H
 
-// 0: complex scalers off, scaler cache off, some simple scalers off, memory requirements reduced
-// 1: complex scalers off, scaler cache off, all simple scalers on
-// 2: complex scalers off, scaler cache on
-// 3: complex scalers on
-#define RENDER_USE_ADVANCED_SCALERS 3
-
 #include "../src/gui/render_scalers.h"
 
 #define RENDER_SKIP_CACHE	16
@@ -72,7 +66,6 @@ typedef struct {
 		bool forced;
 		ScalerLineHandler_t lineHandler;
 		ScalerLineHandler_t linePalHandler;
-		ScalerComplexHandler_t complexHandler;
 		Bitu blocks, lastBlock;
 		Bitu outPitch;
 		Bit8u *outWrite;
