@@ -49,7 +49,7 @@ static bool write_active = false;
 static bool swap34 = false;
 bool button_wrapping_enabled = true;
 
-extern bool autofire; //sdl_mapper.cpp
+bool autofire = false;
 
 static Bitu read_p201(Bitu port,Bitu iolen) {
 	/* Reset Joystick to 0 after TIMEOUT ms */
