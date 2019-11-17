@@ -22,6 +22,10 @@
 #define _GNU_SOURCE
 #endif
 
+#include <iostream>
+#include <string>
+#include <fstream>
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -138,6 +142,8 @@ struct SDL_Block {
     struct {
         SDL_GLContext context;
         GLuint program;
+        std::string vertex_shader_code;
+        std::string fragment_shader_code;
         GLuint vertex_shader;
         GLuint fragment_shader;
         GLuint vertex_array;
@@ -348,7 +354,7 @@ void GFX_Create(Bitu width, Bitu height) {
 
     //Use OpenGL 3.1 core profile.
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     
     //Create SDL window.
@@ -428,32 +434,10 @@ void GFX_Create(Bitu width, Bitu height) {
     glBindTexture(GL_TEXTURE_2D, 0);
     
     //Compile shaders.
-    //TODO: Add configurable shaders.
     LOG_MSG("SDL:OPENGL: Compiling vertex shader...\n");
-    sdl.opengl.vertex_shader = GFX_CompileShader("#version 140\n"
-                                                 "\n"
-                                                 "in vec2 vs_tex;\n"
-                                                 "in vec2 vs_vertex;\n"
-                                                 "\n"
-                                                 "out vec2 fs_tex;\n"
-                                                 "\n"
-                                                 "void main() {\n"
-                                                 "    fs_tex = vs_tex;\n"
-                                                 "    gl_Position = vec4(vs_vertex.xy, 0.0f, 1.0f);\n"
-                                                 "}\n", GL_VERTEX_SHADER);
+    sdl.opengl.vertex_shader = GFX_CompileShader(sdl.opengl.vertex_shader_code.c_str(), GL_VERTEX_SHADER);
     LOG_MSG("SDL:OPENGL: Compiling fragment shader...\n");
-    sdl.opengl.fragment_shader = GFX_CompileShader("#version 140\n"
-                                                   "\n"
-                                                   "uniform sampler2D framebuffer;\n"
-                                                   "uniform vec2 window_size;\n"
-                                                   "uniform vec2 framebuffer_size;\n"
-                                                   "\n"
-                                                   "in vec2 fs_tex;\n"
-                                                   "out vec4 fragment;\n"
-                                                   "\n"
-                                                   "void main() {\n"
-                                                   "    fragment = vec4(texture(framebuffer, fs_tex).xyz, 1.0f);\n"
-                                                   "}\n", GL_FRAGMENT_SHADER);
+    sdl.opengl.fragment_shader = GFX_CompileShader(sdl.opengl.fragment_shader_code.c_str(), GL_FRAGMENT_SHADER);
     
     //Link shaders in program.
     LOG_MSG("SDL:OPENGL: Linking OpenGL program...\n");
@@ -728,6 +712,27 @@ static void OutputString(Bitu x,Bitu y,const char * text,Bit32u color,Bit32u col
 
 #include "dosbox_splash.h"
 
+std::string read_text_file_as_string(const std::string &file_name) {
+    //Read a text file from disk as a string.
+    //https://stackoverflow.com/questions/2602013/read-whole-ascii-file-into-c-stdstring
+    std::ifstream t(file_name.c_str());
+    std::string str;
+    
+    if (!t.good()) {
+        LOG_MSG("SDL:OPENGL: Unable to open %s!\n", file_name.c_str());
+        return std::string("");
+    }
+
+    t.seekg(0, std::ios::end);   
+    str.reserve(t.tellg());
+    t.seekg(0, std::ios::beg);
+
+    str.assign((std::istreambuf_iterator<char>(t)),
+                std::istreambuf_iterator<char>());
+    
+    return str;
+}
+
 //extern void UI_Run(bool);
 static void GUI_StartUp(Section * sec) {
     sec->AddDestroyFunction(&GUI_ShutDown);
@@ -784,6 +789,51 @@ static void GUI_StartUp(Section * sec) {
                     sdl.desktop.full.width  = (Bit16u)atoi(res);
                 }
             }
+        }
+    }
+    
+    //Initialize OpenGL shaders to default.
+    sdl.opengl.vertex_shader_code = std::string("#version 140\n"
+                                                "\n"
+                                                "in vec2 vs_tex;\n"
+                                                "in vec2 vs_vertex;\n"
+                                                "\n"
+                                                "out vec2 fs_tex;\n"
+                                                "\n"
+                                                "void main() {\n"
+                                                "    fs_tex = vs_tex;\n"
+                                                "    gl_Position = vec4(vs_vertex.xy, 0.0f, 1.0f);\n"
+                                                "}\n");
+    sdl.opengl.fragment_shader_code = std::string("#version 140\n"
+                                                  "\n"
+                                                  "uniform sampler2D framebuffer;\n"
+                                                  "uniform vec2 window_size;\n"
+                                                  "uniform vec2 framebuffer_size;\n"
+                                                  "\n"
+                                                  "in vec2 fs_tex;\n"
+                                                  "out vec4 fragment;\n"
+                                                  "\n"
+                                                  "void main() {\n"
+                                                  "    fragment = vec4(texture(framebuffer, fs_tex).xyz, 1.0f);\n"
+                                                  "}\n");
+    //Read OpenGL shaders from disk if desired.
+    const char *vertexshaderfile = section->Get_string("vertexshader");
+    
+    if (vertexshaderfile && *vertexshaderfile) {
+        std::string code = read_text_file_as_string(std::string(vertexshaderfile));
+        
+        if (!code.empty()) {
+            sdl.opengl.vertex_shader_code = code;
+        }
+    }
+    
+    const char *fragmentshaderfile = section->Get_string("fragmentshader");
+    
+    if (fragmentshaderfile && *fragmentshaderfile) {
+        std::string code = read_text_file_as_string(std::string(fragmentshaderfile));
+        
+        if (!code.empty()) {
+            sdl.opengl.fragment_shader_code = code;
         }
     }
 
@@ -1180,7 +1230,7 @@ void Config_Add_SDL() {
     Pstring->Set_values(inactt);
 
     Pstring = sdl_sec->Add_path("mapperfile",Property::Changeable::Always,MAPPERFILE);
-    Pstring->Set_help("File used to load/save the key/event mappings from. Resetmapper only works with the defaul value.");
+    Pstring->Set_help("File used to load/save the key/event mappings from. Resetmapper only works with the default value.");
 }
 
 static void launcheditor() {
