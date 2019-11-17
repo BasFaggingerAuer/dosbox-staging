@@ -428,25 +428,27 @@ void GFX_Create(Bitu width, Bitu height) {
     LOG_MSG("SDL:OPENGL: Compiling vertex shader...\n");
     sdl.opengl.vertex_shader = GFX_CompileShader("#version 140\n"
                                                  "\n"
-                                                 "in vec2 tex_vertex;\n"
-                                                 "in vec2 vertex;\n"
+                                                 "in vec2 vs_tex;\n"
+                                                 "in vec2 vs_vertex;\n"
                                                  "\n"
-                                                 "out vec2 tex_uv;\n"
+                                                 "out vec2 fs_tex;\n"
                                                  "\n"
                                                  "void main() {\n"
-                                                 "    tex_uv = tex_vertex;\n"
-                                                 "    gl_Position = vec4(vertex.xy, 0.0f, 1.0f);\n"
+                                                 "    fs_tex = vs_tex;\n"
+                                                 "    gl_Position = vec4(vs_vertex.xy, 0.0f, 1.0f);\n"
                                                  "}\n", GL_VERTEX_SHADER);
     LOG_MSG("SDL:OPENGL: Compiling fragment shader...\n");
     sdl.opengl.fragment_shader = GFX_CompileShader("#version 140\n"
                                                    "\n"
-                                                   "uniform sampler2D dosbox;\n"
+                                                   "uniform sampler2D framebuffer;\n"
+                                                   "uniform vec2 window_size;\n"
+                                                   "uniform vec2 framebuffer_size;\n"
                                                    "\n"
-                                                   "in vec2 tex_uv;\n"
+                                                   "in vec2 fs_tex;\n"
                                                    "out vec4 fragment;\n"
                                                    "\n"
                                                    "void main() {\n"
-                                                   "    fragment = vec4(texture(dosbox, tex_uv).xyz, 1.0f);\n"
+                                                   "    fragment = vec4(texture(framebuffer, fs_tex).xyz, 1.0f);\n"
                                                    "}\n", GL_FRAGMENT_SHADER);
     
     //Link shaders in program.
@@ -465,17 +467,21 @@ void GFX_Create(Bitu width, Bitu height) {
     }
     
     //Get shader parameter indices.
-    const GLint glsl_tex_vertex_index = glGetAttribLocation(sdl.opengl.program, "tex_vertex");
-    const GLint glsl_vertex_index = glGetAttribLocation(sdl.opengl.program, "vertex");
-    const GLint glsl_texture_index = glGetUniformLocation(sdl.opengl.program, "dosbox");
+    const GLint glsl_tex_vertex_index = glGetAttribLocation(sdl.opengl.program, "vs_tex");
+    const GLint glsl_vertex_index = glGetAttribLocation(sdl.opengl.program, "vs_vertex");
+    const GLint glsl_texture_index = glGetUniformLocation(sdl.opengl.program, "framebuffer");
+    const GLint glsl_ws_index = glGetUniformLocation(sdl.opengl.program, "window_size");
+    const GLint glsl_fb_index = glGetUniformLocation(sdl.opengl.program, "framebuffer_size");
     
     if (glsl_vertex_index < 0 || glsl_tex_vertex_index < 0 || glsl_texture_index < 0) {
-        E_Exit("Unable to find variables vertex or tex_vertex in the OpenGL shader program!");
+        E_Exit("Unable to find required variables in the OpenGL shader program!");
     }
     
     //Set texture index.
     glUseProgram(sdl.opengl.program);
     glUniform1i(glsl_texture_index, 0);
+    glUniform2f(glsl_ws_index, sdl.desktop.window.width, sdl.desktop.window.height);
+    glUniform2f(glsl_fb_index, sdl.draw.width, sdl.draw.height);
     glUseProgram(0);
     
     //Create vertex buffer object for the screen quad.
@@ -531,6 +537,12 @@ Bitu GFX_SetSize(Bitu width, Bitu height, Bitu flags, double scalex, double scal
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, sdl.draw.width, sdl.draw.height, 0, GL_BGRA, GL_UNSIGNED_BYTE, NULL);
     glBindTexture(GL_TEXTURE_2D, 0);
     
+    //Update framebuffer size in fragment shader.
+    glUseProgram(sdl.opengl.program);
+    glUniform2f(glGetUniformLocation(sdl.opengl.program, "framebuffer_size"), sdl.draw.width, sdl.draw.height);
+    glUseProgram(0);
+    
+    //Start graphics back up.
     GFX_Start();
     
     if (!sdl.mouse.autoenable) {
