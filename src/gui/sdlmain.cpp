@@ -358,7 +358,9 @@ void GFX_Create(Bitu width, Bitu height) {
         sdl_flags |= SDL_WINDOW_FULLSCREEN;
     }
     
-    sdl.window = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, sdl.draw.width, sdl.draw.height, sdl_flags);
+    LOG_MSG("SDL:OPENGL: Creating a %dx%d window...\n", sdl.desktop.window.width, sdl.desktop.window.height);
+    
+    sdl.window = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, sdl.desktop.window.width, sdl.desktop.window.height, sdl_flags);
     
     if (sdl.window == NULL) {
         LOG_MSG("SDL:OPENGL: Unable to create window: %s\n", SDL_GetError());
@@ -386,10 +388,17 @@ void GFX_Create(Bitu width, Bitu height) {
         LOG_MSG("SDL:OPENGL: Unable to enable adaptive vsync: %s\n", SDL_GetError());
     }
     
-    //Determine desired texture size.
-    int tex_size = 2 << int_log2(width > height ? width : height);
+    //Initialize OpenGL.
+    glClearColor(0.0, 0.0, 0.0, 1.0);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
     
-    LOG_MSG("SDL:OPENGL: Creating a %dx%d texture.\n", tex_size, tex_size);
+    //Allocate texture.
+    glGenTextures(1, &sdl.opengl.texture);
+    
+    sdl.opengl.framebuf = NULL;
+    
+    LOG_MSG("SDL:OPENGL: Creating a %dx%d texture.\n", width, height);
     
     sdl.opengl.pitch = width*4;
     sdl.opengl.framebuf = new Bit8u [width*height*4];
@@ -399,15 +408,6 @@ void GFX_Create(Bitu width, Bitu height) {
         E_Exit("Unable to allocate framebuffer!");
     }
 
-    //FIXME: Determine clipped area.
-    glViewport(0, 0, sdl.draw.width, sdl.draw.height);
-    glClearColor(0.0, 0.0, 0.0, 1.0);
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_CULL_FACE);
-    
-    //Allocate texture.
-    glGenTextures(1, &sdl.opengl.texture);
-    
     glBindTexture(GL_TEXTURE_2D, sdl.opengl.texture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, sdl.draw.width, sdl.draw.height, 0, GL_BGRA, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
@@ -420,6 +420,8 @@ void GFX_Create(Bitu width, Bitu height) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     }
+    
+    glBindTexture(GL_TEXTURE_2D, 0);
     
     //Compile shaders.
     //TODO: Add configurable shaders.
@@ -504,10 +506,31 @@ Bitu GFX_SetSize(Bitu width, Bitu height, Bitu flags, double scalex, double scal
 
     Bitu retFlags = GFX_CAN_32 | GFX_SCALING | GFX_HARDWARE;
     
+    sdl.draw.width = width;
+    sdl.draw.height = height;
     sdl.draw.scalex = scalex;
     sdl.draw.scaley = scaley;
     sdl.draw.callback = callback;
-    GFX_Create(width, height);
+    
+    //Update texture.
+    LOG_MSG("SDL:OPENGL: Creating a %dx%d texture.\n", width, height);
+    
+    if (sdl.opengl.framebuf != NULL) {
+        delete [] sdl.opengl.framebuf;
+    }
+    
+    sdl.opengl.pitch = width*4;
+    sdl.opengl.framebuf = new Bit8u [width*height*4];
+    
+    if (sdl.opengl.framebuf == NULL) {
+        LOG_MSG("SDL:OPENGL: Unable to allocate framebuffer!");
+        E_Exit("Unable to allocate framebuffer!");
+    }
+
+    glBindTexture(GL_TEXTURE_2D, sdl.opengl.texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, sdl.draw.width, sdl.draw.height, 0, GL_BGRA, GL_UNSIGNED_BYTE, NULL);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    
     GFX_Start();
     
     if (!sdl.mouse.autoenable) {
@@ -766,8 +789,8 @@ static void GUI_StartUp(Section * sec) {
         }
     }
 
-    sdl.desktop.window.width  = 0;
-    sdl.desktop.window.height = 0;
+    sdl.desktop.window.width  = 640;
+    sdl.desktop.window.height = 480;
     const char* windowresolution=section->Get_string("windowresolution");
     if(windowresolution && *windowresolution) {
         char res[100];
@@ -818,6 +841,7 @@ static void GUI_StartUp(Section * sec) {
     } else {
         LOG_MSG("SDL:Unsupported output device %s, switching back to opengl",output.c_str());
         sdl.desktop.want_type=SCREEN_OPENGL;
+        sdl.opengl.bilinear=true;
     }
 
     /* Initialize screen for first time */
