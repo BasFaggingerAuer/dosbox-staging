@@ -353,14 +353,18 @@ void GFX_Create(Bitu width, Bitu height) {
     
     //Create SDL window.
     Uint32 sdl_flags = SDL_WINDOW_OPENGL;
+    Bitu window_width = sdl.desktop.window.width;
+    Bitu window_height = sdl.desktop.window.height;
     
     if (sdl.desktop.fullscreen) {
         sdl_flags |= SDL_WINDOW_FULLSCREEN;
+        window_width = sdl.desktop.full.width;
+        window_height = sdl.desktop.full.height;
     }
     
-    LOG_MSG("SDL:OPENGL: Creating a %dx%d window...\n", sdl.desktop.window.width, sdl.desktop.window.height);
+    LOG_MSG("SDL:OPENGL: Creating a %dx%d window...\n", window_width, window_height);
     
-    sdl.window = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, sdl.desktop.window.width, sdl.desktop.window.height, sdl_flags);
+    sdl.window = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, window_width, window_height, sdl_flags);
     
     if (sdl.window == NULL) {
         LOG_MSG("SDL:OPENGL: Unable to create window: %s\n", SDL_GetError());
@@ -480,7 +484,7 @@ void GFX_Create(Bitu width, Bitu height) {
     //Set texture index.
     glUseProgram(sdl.opengl.program);
     glUniform1i(glsl_texture_index, 0);
-    glUniform2f(glsl_ws_index, sdl.desktop.window.width, sdl.desktop.window.height);
+    glUniform2f(glsl_ws_index, window_width, window_height);
     glUniform2f(glsl_fb_index, sdl.draw.width, sdl.draw.height);
     glUseProgram(0);
     
@@ -579,23 +583,6 @@ static void CaptureMouse(bool pressed) {
     GFX_CaptureMouse();
 }
 
-void GFX_SwitchFullScreen(void) {
-    sdl.desktop.fullscreen=!sdl.desktop.fullscreen;
-    if (sdl.desktop.fullscreen) {
-        if (!sdl.mouse.locked) GFX_CaptureMouse();
-    } else {
-        if (sdl.mouse.locked) GFX_CaptureMouse();
-    }
-    GFX_ResetScreen();
-}
-
-static void SwitchFullScreen(bool pressed) {
-    if (!pressed)
-        return;
-    GFX_SwitchFullScreen();
-}
-
-
 bool GFX_StartUpdate(Bit8u * & pixels,Bitu & pitch) {
     if (!sdl.active || sdl.updating) {
         return false;
@@ -663,7 +650,6 @@ static void GUI_ShutDown(Section * /*sec*/) {
     GFX_Stop();
     if (sdl.draw.callback) (sdl.draw.callback)( GFX_CallBackStop );
     if (sdl.mouse.locked) GFX_CaptureMouse();
-    if (sdl.desktop.fullscreen) GFX_SwitchFullScreen();
     GFX_Destroy();
 }
 
@@ -877,7 +863,6 @@ static void GUI_StartUp(Section * sec) {
     /* Get some Event handlers */
     MAPPER_AddHandler(KillSwitch,MK_f9,MMOD1,"shutdown","ShutDown");
     MAPPER_AddHandler(CaptureMouse,MK_f10,MMOD1,"capmouse","Cap Mouse");
-    MAPPER_AddHandler(SwitchFullScreen,MK_return,MMOD2,"fullscr","Fullscreen");
 #if C_DEBUG
     /* Pause binds with activate-debugger */
 #else
@@ -1471,12 +1456,6 @@ int main(int argc, char* argv[]) {
         control->Init();
         /* Some extra SDL Functions */
         Section_prop * sdl_sec=static_cast<Section_prop *>(control->GetSection("sdl"));
-
-        if (control->cmdline->FindExist("-fullscreen") || sdl_sec->Get_bool("fullscreen")) {
-            if(!sdl.desktop.fullscreen) { //only switch if not allready in fullscreen
-                GFX_SwitchFullScreen();
-            }
-        }
 
         /* Init the keyMapper */
         MAPPER_Init();
