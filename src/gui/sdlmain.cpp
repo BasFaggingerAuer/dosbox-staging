@@ -165,7 +165,6 @@ struct SDL_Block {
     SDL_Rect updateRects[1024];
     Bitu num_joysticks;
 #if defined (WIN32)
-    bool using_windib;
     // Time when sdl regains focus (alt-tab) in windowed mode
     Bit32u focus_ticks;
 #endif
@@ -257,12 +256,6 @@ static void PauseDOSBox(bool pressed) {
         }
     }
 }
-
-#if defined (WIN32)
-bool GFX_SDLUsingWinDIB(void) {
-    return sdl.using_windib;
-}
-#endif
 
 /* Reset the screen with current values in the sdl structure */
 Bitu GFX_GetBestMode(Bitu flags) {
@@ -1374,35 +1367,6 @@ int main(int argc, char* argv[]) {
     sdl.laltstate = SDL_KEYUP;
     sdl.raltstate = SDL_KEYUP;
 
-#if defined (WIN32)
-#if SDL_VERSION_ATLEAST(1, 2, 10)
-        sdl.using_windib=true;
-#else
-        sdl.using_windib=false;
-#endif
-        char sdl_drv_name[128];
-        if (getenv("SDL_VIDEODRIVER")==NULL) {
-            if (SDL_VideoDriverName(sdl_drv_name,128)!=NULL) {
-                sdl.using_windib=false;
-                if (strcmp(sdl_drv_name,"directx")!=0) {
-                    SDL_QuitSubSystem(SDL_INIT_VIDEO);
-                    putenv("SDL_VIDEODRIVER=directx");
-                    if (SDL_InitSubSystem(SDL_INIT_VIDEO)<0) {
-                        putenv("SDL_VIDEODRIVER=windib");
-                        if (SDL_InitSubSystem(SDL_INIT_VIDEO)<0) E_Exit("Can't init SDL Video %s",SDL_GetError());
-                        sdl.using_windib=true;
-                    }
-                }
-            }
-        } else {
-            char* sdl_videodrv = getenv("SDL_VIDEODRIVER");
-            if (strcmp(sdl_videodrv,"directx")==0) sdl.using_windib = false;
-            else if (strcmp(sdl_videodrv,"windib")==0) sdl.using_windib = true;
-        }
-        if (SDL_VideoDriverName(sdl_drv_name,128)!=NULL) {
-            if (strcmp(sdl_drv_name,"windib")==0) LOG_MSG("SDL_Init: Starting up with SDL windib video driver.\n          Try to update your video card and directx drivers!");
-        }
-#endif
     sdl.num_joysticks=SDL_NumJoysticks();
 
     /* Parse configuration files */
