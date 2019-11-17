@@ -1142,21 +1142,19 @@ void Config_Add_SDL() {
                       "  (output=surface does not!)");
 
     const char* outputs[] = {
-        "surface", "overlay",
 #if C_OPENGL
         "opengl", "openglnb",
 #endif
-#if (HAVE_DDRAW_H) && defined(WIN32)
-        "ddraw",
-#endif
         0 };
-#if C_OPENGL && defined(MACOSX)
     Pstring = sdl_sec->Add_string("output",Property::Changeable::Always,"opengl");
-#else
-    Pstring = sdl_sec->Add_string("output",Property::Changeable::Always,"surface");
-#endif
     Pstring->Set_help("What video system to use for output.");
     Pstring->Set_values(outputs);
+    
+    Pstring = sdl_sec->Add_string("vertexshader",Property::Changeable::Always,"");
+    Pstring->Set_help("Full filename of OpenGL vertex shader to use. Leave empty for default shader.");
+
+    Pstring = sdl_sec->Add_string("fragmentshader",Property::Changeable::Always,"");
+    Pstring->Set_help("Full filename of OpenGL fragment shader to use. Leave empty for default shader.");
 
     Pbool = sdl_sec->Add_bool("autolock",Property::Changeable::Always,true);
     Pbool->Set_help("Mouse will automatically lock, if you click on the screen. (Press CTRL-F10 to unlock)");
@@ -1183,9 +1181,6 @@ void Config_Add_SDL() {
 
     Pstring = sdl_sec->Add_path("mapperfile",Property::Changeable::Always,MAPPERFILE);
     Pstring->Set_help("File used to load/save the key/event mappings from. Resetmapper only works with the defaul value.");
-
-    Pbool = sdl_sec->Add_bool("usescancodes",Property::Changeable::Always,true);
-    Pbool->Set_help("Avoid usage of symkeys, might not work on all operating systems.");
 }
 
 static void launcheditor() {

@@ -300,7 +300,6 @@ protected:
 
 #define MAX_SDLKEYS SDL_NUM_SCANCODES
 
-static bool usescancodes = true;
 static Bit8u scancode_map[MAX_SDLKEYS];
 
 #define Z SDL_SCANCODE_UNKNOWN
@@ -395,10 +394,8 @@ static SDL_Scancode sdlkey_map[MAX_SCANCODES]={SDL_SCANCODE_UNKNOWN,SDL_SCANCODE
 
 
 SDL_Scancode MapSDLCode(Bitu skey) {
-	if (usescancodes) {
-		if (skey<MAX_SCANCODES) return sdlkey_map[skey];
-		else return SDL_SCANCODE_UNKNOWN;
-	} else return (SDL_Scancode)skey;
+    if (skey<MAX_SCANCODES) return sdlkey_map[skey];
+    else return SDL_SCANCODE_UNKNOWN;
 }
 
 Bitu GetKeyCode(SDL_Keysym keysym) {
@@ -437,10 +434,8 @@ public:
 		if (strncasecmp(buf,configname,strlen(configname))) return 0;
 		StripWord(buf);char * num=StripWord(buf);
 		Bitu code=ConvDecWord(num);
-		if (usescancodes) {
-			if (code<MAX_SDLKEYS) code=scancode_map[code];
-			else code=0;
-		}
+        if (code<MAX_SDLKEYS) code=scancode_map[code];
+        else code=0;
 		CBind * bind=CreateKeyBind((SDL_Scancode)code);
 		return bind;
 	}
@@ -458,7 +453,6 @@ public:
 		return 0;
 	}
 	CBind * CreateKeyBind(SDL_Scancode _key) {
-		if (!usescancodes) assert((Bitu)_key<keys);
 		return new CKeyBind(&lists[(Bitu)_key],_key);
 	}
 private:
@@ -1408,8 +1402,6 @@ void MAPPER_StartUp(Section * sec) {
 	mapper.sticks.num_groups=0;
 
 	//memset(&virtual_joysticks,0,sizeof(virtual_joysticks));
-
-    usescancodes=true;
 
     /* Note: table has to be tested/updated for various OSs */
 #if defined (MACOSX)
