@@ -1,6 +1,9 @@
 #ifndef DOSBOX_MIDI_MT32_H
 #define DOSBOX_MIDI_MT32_H
 
+#if defined (C_MUNT)
+
+#include <SDL_thread.h>
 #include "mixer.h"
 
 #define MT32EMU_API_TYPE 3
@@ -51,6 +54,8 @@ private:
 	void handleMixerCallBack(Bitu len);
 	void renderingLoop();
 };
+
+#endif
 
 #endif /* DOSBOX_MIDI_MT32_H */
 

@@ -5,6 +5,8 @@
 #include "midi.h"
 #include "midi_mt32.h"
 
+#if defined (C_MUNT)
+
 static const Bitu MILLIS_PER_SECOND = 1000;
 
 MidiHandler_mt32 &MidiHandler_mt32::GetInstance() {
@@ -294,4 +296,6 @@ void MidiHandler_mt32::renderingLoop() {
 		}
 	}
 }
+
+#endif
 

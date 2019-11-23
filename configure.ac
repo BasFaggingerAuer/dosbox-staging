@@ -454,8 +454,9 @@ fi
 
 AH_TEMPLATE(C_MUNT,[Define to 1 to enable MUNT Roland MT-32 emulation support])
 AC_CHECK_HEADER(mt32emu/mt32emu.h,have_MUNT_h=yes,)
-AC_CHECK_LIB(mt32emu, makeROMPathName, have_MUNT_lib=yes,,)
-if test x$have_MUNT_h = xyes -a x$have_MUNT_lib = xyes ; then
+dnl AC_CHECK_LIB(mt32emu, makeROMPathName, have_MUNT_lib=yes,,)
+dnl if test x$have_MUNT_h = xyes -a x$have_MUNT_lib = xyes ; then
+if test x$have_MUNT_h = xyes ; then
     LIBS="$LIBS -lmt32emu"
     AC_DEFINE(C_MUNT,1)
 else
