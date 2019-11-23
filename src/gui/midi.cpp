@@ -27,6 +27,7 @@
 #include "mapper.h"
 #include "pic.h"
 #include "hardware.h"
+#include "midi.h"
 
 #define SYSEX_SIZE 1024
 #define RAWBUF	1024
@@ -54,25 +55,7 @@ Bit8u MIDI_evt_len[256] = {
   0,2,3,2, 0,0,1,0, 1,0,1,1, 1,0,1,0   // 0xf0
 };
 
-class MidiHandler;
-
 MidiHandler * handler_list=0;
-
-class MidiHandler {
-public:
-	MidiHandler() {
-		next=handler_list;
-		handler_list=this;
-	};
-	virtual bool Open(const char * /*conf*/) { return true; };
-	virtual void Close(void) {};
-	virtual void PlayMsg(Bit8u * /*msg*/) {};
-	virtual void PlaySysex(Bit8u * /*sysex*/,Bitu /*len*/) {};
-	virtual const char * GetName(void) { return "none"; };
-	virtual ~MidiHandler() { };
-	MidiHandler * next;
-};
-
 MidiHandler Midi_none;
 
 /* Include different midi drivers, lowest ones get checked first for default */
@@ -95,6 +78,14 @@ MidiHandler Midi_none;
 #if defined (HAVE_ALSA)
 
 #include "midi_alsa.h"
+
+#endif
+
+#if defined (C_MUNT)
+
+#include "midi_mt32.h"
+
+static MidiHandler_mt32 &Midi_mt32 = MidiHandler_mt32::GetInstance();
 
 #endif
 

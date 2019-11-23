@@ -1,5 +1,5 @@
 dnl Init.
-AC_INIT(dosbox,0.74-3)
+AC_INIT(gldosbox,0.74-3)
 AC_PREREQ(2.50)
 AC_CONFIG_SRCDIR(README)
 
@@ -452,19 +452,14 @@ else
    AC_MSG_RESULT(no)
 fi
 
-AH_TEMPLATE(C_SDL_SOUND,[Define to 1 to enable SDL_sound support])
-AC_CHECK_HEADER(SDL_sound.h,have_SDL_sound_h=yes,)
-AC_CHECK_LIB(SDL_sound, Sound_Init, have_SDL_sound_init=yes,,)
-AC_CHECK_LIB(SDL_sound, Sound_Seek, have_SDL_sound_seek=yes,,)
-if test x$have_SDL_sound_h = xyes -a x$have_SDL_sound_init = xyes ; then
-  if test x$have_SDL_sound_seek = xyes ; then
-    LIBS="-lSDL_sound $LIBS"
-    AC_DEFINE(C_SDL_SOUND,1)
-   else 
-     AC_MSG_WARN([Can't find SoundSeek in libSDL_Sound, libSDL_sound support disabled])
-   fi
+AH_TEMPLATE(C_MUNT,[Define to 1 to enable MUNT Roland MT-32 emulation support])
+AC_CHECK_HEADER(mt32emu/mt32emu.h,have_MUNT_h=yes,)
+AC_CHECK_LIB(mt32emu, makeROMPathName, have_MUNT_lib=yes,,)
+if test x$have_MUNT_h = xyes -a x$have_MUNT_lib = xyes ; then
+    LIBS="$LIBS -lmt32emu"
+    AC_DEFINE(C_MUNT,1)
 else
-  AC_MSG_WARN([Can't find libSDL_sound, libSDL_sound support disabled])
+    AC_MSG_WARN([Can't find libmt32emu, MUNT Roland MT-32 emulation disabled])
 fi
 
 dnl Check for mprotect. Needed for 64 bits linux 
