@@ -545,9 +545,11 @@ void GFX_CaptureMouse(void) {
     
     if (sdl.mouse.locked) {
         SDL_SetWindowGrab(sdl.window, SDL_TRUE);
+        SDL_SetRelativeMouseMode(SDL_TRUE);
         SDL_ShowCursor(SDL_DISABLE);
     } else {
         SDL_SetWindowGrab(sdl.window, SDL_FALSE);
+        SDL_SetRelativeMouseMode(SDL_FALSE);
         
         if (sdl.mouse.autoenable || !sdl.mouse.autolock) {
             SDL_ShowCursor(SDL_ENABLE);
