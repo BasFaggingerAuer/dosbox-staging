@@ -394,8 +394,8 @@ void GFX_Create(Bitu width, Bitu height) {
     }
     
     //Enable adaptive vertical sync.
-    if (SDL_GL_SetSwapInterval(-1) == -1) {
-        LOG_MSG("SDL:OPENGL: Unable to enable adaptive vsync: %s\n", SDL_GetError());
+    if (SDL_GL_SetSwapInterval(0) == -1) {
+        LOG_MSG("SDL:OPENGL: Unable to enable direct screen updates: %s\n", SDL_GetError());
     }
     
     //Initialize OpenGL.
@@ -587,7 +587,7 @@ void GFX_EndUpdate(const Bit16u *) {
         return;
     }
     
-    sdl.updating=false;
+    sdl.updating = false;
     
     //Update texture.
     glBindTexture(GL_TEXTURE_2D, sdl.opengl.texture);
